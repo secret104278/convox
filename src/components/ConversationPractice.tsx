@@ -1,35 +1,49 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { PlayCircleIcon, SpeakerWaveIcon, ArrowRightCircleIcon, ArrowPathIcon } from "@heroicons/react/24/solid";
-import type { ConversationSession } from "~/types/db";
-import { useSessionStore } from "~/store/sessions";
+import { api } from "~/trpc/react";
 
-interface Props {
-  initialSessions: ConversationSession[];
-}
+export function ConversationPractice() {
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get("session") ?? undefined;
+  const isNew = searchParams.get("new") === "true";
 
-export function ConversationPractice({ initialSessions }: Props) {
-  const {
-    prompt,
-    conversations,
-    selectedRole,
-    currentIndex,
-    isLoading,
-    isPracticing,
-    setPrompt,
-    setSessions,
-    setSelectedRole,
-    setCurrentIndex,
-    setIsPracticing,
-    generateConversation,
-    resetPractice,
-  } = useSessionStore();
+  const utils = api.useUtils();
+  const { data: currentSession } = api.conversations.getSession.useQuery(
+    { id: sessionId! },
+    { enabled: !!sessionId }
+  );
+  const conversations = currentSession?.conversations ?? [];
 
-  // Initialize sessions on mount
+  const generateMutation = api.conversations.generate.useMutation({
+    onSuccess: async (result) => {
+      await utils.conversations.getSessions.invalidate();
+      await utils.conversations.getSession.invalidate({ id: result.sessionId });
+      setCurrentIndex(-1);
+      setIsPracticing(false);
+    },
+  });
+
+  const [prompt, setPrompt] = useState(currentSession?.prompt ?? "");
+  const [selectedRole, setSelectedRole] = useState<"A" | "B">("A");
+  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [isPracticing, setIsPracticing] = useState(false);
+
   useEffect(() => {
-    setSessions(initialSessions);
-  }, [initialSessions, setSessions]);
+    if (currentSession) {
+      setPrompt(currentSession.prompt);
+    }
+  }, [currentSession]);
+
+  useEffect(() => {
+    if (isNew) {
+      setPrompt("");
+      setCurrentIndex(-1);
+      setIsPracticing(false);
+    }
+  }, [isNew]);
 
   const startPractice = () => {
     setIsPracticing(true);
@@ -58,6 +72,11 @@ export function ConversationPractice({ initialSessions }: Props) {
     }
   };
 
+  const resetPractice = () => {
+    setIsPracticing(false);
+    setCurrentIndex(-1);
+  };
+
   const isLastLine = currentIndex === conversations.length - 1;
 
   return (
@@ -75,12 +94,12 @@ export function ConversationPractice({ initialSessions }: Props) {
             <div className="mt-4 flex gap-4">
               {!conversations.length && (
                 <button
-                  className={`btn btn-primary gap-2 ${isLoading ? "loading" : ""}`}
-                  onClick={generateConversation}
-                  disabled={isLoading}
+                  className={`btn btn-primary gap-2 ${generateMutation.isPending ? "loading" : ""}`}
+                  onClick={() => generateMutation.mutate({ prompt, sessionId })}
+                  disabled={generateMutation.isPending}
                 >
                   <SpeakerWaveIcon className="h-5 w-5" />
-                  {isLoading ? "生成中..." : "生成對話"}
+                  {generateMutation.isPending ? "生成中..." : "生成對話"}
                 </button>
               )}
               {conversations.length > 0 && !isPracticing && (
@@ -101,8 +120,8 @@ export function ConversationPractice({ initialSessions }: Props) {
                   </button>
                   <button
                     className="btn btn-primary gap-2"
-                    onClick={generateConversation}
-                    disabled={isLoading}
+                    onClick={() => generateMutation.mutate({ prompt, sessionId })}
+                    disabled={generateMutation.isPending}
                   >
                     <ArrowPathIcon className="h-5 w-5" />
                     重新生成
@@ -179,7 +198,7 @@ export function ConversationPractice({ initialSessions }: Props) {
                 </button>
                 <button
                   className="btn btn-primary gap-2"
-                  onClick={generateConversation}
+                  onClick={() => generateMutation.mutate({ prompt, sessionId })}
                 >
                   <SpeakerWaveIcon className="h-5 w-5" />
                   生成新對話

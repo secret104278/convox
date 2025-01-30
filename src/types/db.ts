@@ -6,10 +6,3 @@ export type Conversation = {
   audioUrl?: string;
 };
 
-export type ConversationSession = {
-  id: string;
-  prompt: string;
-  createdAt: Date;
-  updatedAt: Date;
-  conversations: Conversation[];
-}; 

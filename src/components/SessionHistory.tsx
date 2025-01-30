@@ -1,16 +1,20 @@
 "use client";
 
+import { PlusCircleIcon } from "@heroicons/react/24/solid";
 import { format } from "date-fns";
-import { PlusCircleIcon } from "@heroicons/react/24/outline";
-import { useSessionStore } from "~/store/sessions";
+import { api } from "~/trpc/react";
+import { useRouter } from "next/navigation";
 
 export function SessionHistory() {
-  const { sessions, currentSessionId, setCurrentSession, setPrompt, setConversations, setCurrentSessionId } = useSessionStore();
+  const { data: sessions = [] } = api.conversations.getSessions.useQuery();
+  const router = useRouter();
 
   const handleNewSession = () => {
-    setPrompt("");
-    setConversations([]);
-    setCurrentSessionId(undefined);
+    router.push("/?new=true");
+  };
+
+  const handleSessionClick = (sessionId: string) => {
+    router.push(`/?session=${sessionId}`);
   };
 
   return (
@@ -43,10 +47,8 @@ export function SessionHistory() {
           {sessions.map((session) => (
             <button
               key={session.id}
-              className={`btn btn-ghost w-full justify-start gap-2 normal-case ${
-                session.id === currentSessionId ? "btn-active" : ""
-              }`}
-              onClick={() => setCurrentSession(session)}
+              className="btn btn-ghost w-full justify-start gap-2 normal-case"
+              onClick={() => handleSessionClick(session.id)}
             >
               <div className="flex flex-col items-start overflow-hidden">
                 <div className="w-full truncate text-left">

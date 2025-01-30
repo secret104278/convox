@@ -1,24 +1,8 @@
 import { ConversationPractice } from "~/components/ConversationPractice";
 import { SessionHistory } from "~/components/SessionHistory";
 import { LanguageIcon, SpeakerWaveIcon, Bars3Icon } from "@heroicons/react/24/solid";
-import { db } from "~/server/db";
-import type { Conversation, ConversationSession } from "~/types/db";
 
-export default async function HomePage() {
-  const dbSessions = await db.conversationSession.findMany({
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
-
-  // Convert dates
-  const sessions: ConversationSession[] = dbSessions.map(session => ({
-    ...session,
-    conversations: session.conversations as Conversation[],
-    createdAt: new Date(session.createdAt),
-    updatedAt: new Date(session.updatedAt),
-  }));
-
+export default function HomePage() {
   return (
     <main className="min-h-screen bg-base-100">
       <div className="drawer lg:drawer-open">
@@ -45,7 +29,7 @@ export default async function HomePage() {
                 Practice conversations with AI-generated dialogues and audio.
               </p>
             </div>
-            <ConversationPractice initialSessions={sessions} />
+            <ConversationPractice />
           </div>
         </div>
 
