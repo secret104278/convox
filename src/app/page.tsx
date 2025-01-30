@@ -1,53 +1,56 @@
-import Link from "next/link";
+import { ConversationPractice } from "~/components/ConversationPractice";
+import { SessionHistory } from "~/components/SessionHistory";
+import { LanguageIcon, SpeakerWaveIcon, Bars3Icon } from "@heroicons/react/24/solid";
+import { db } from "~/server/db";
+import type { Conversation, ConversationSession } from "~/types/db";
 
-import { LatestPost } from "~/app/_components/post";
-import { api, HydrateClient } from "~/trpc/server";
+export default async function HomePage() {
+  const dbSessions = await db.conversationSession.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 
-export default async function Home() {
-  const hello = await api.post.hello({ text: "from tRPC" });
-
-  void api.post.getLatest.prefetch();
+  // Convert dates
+  const sessions: ConversationSession[] = dbSessions.map(session => ({
+    ...session,
+    conversations: session.conversations as Conversation[],
+    createdAt: new Date(session.createdAt),
+    updatedAt: new Date(session.updatedAt),
+  }));
 
   return (
-    <HydrateClient>
-      <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
-        <div className="container flex flex-col items-center justify-center gap-12 px-4 py-16">
-          <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem]">
-            Create <span className="text-[hsl(280,100%,70%)]">T3</span> App
-          </h1>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-8">
-            <Link
-              className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 hover:bg-white/20"
-              href="https://create.t3.gg/en/usage/first-steps"
-              target="_blank"
-            >
-              <h3 className="text-2xl font-bold">First Steps →</h3>
-              <div className="text-lg">
-                Just the basics - Everything you need to know to set up your
-                database and authentication.
-              </div>
-            </Link>
-            <Link
-              className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 hover:bg-white/20"
-              href="https://create.t3.gg/en/introduction"
-              target="_blank"
-            >
-              <h3 className="text-2xl font-bold">Documentation →</h3>
-              <div className="text-lg">
-                Learn more about Create T3 App, the libraries it uses, and how
-                to deploy it.
-              </div>
-            </Link>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-2xl text-white">
-              {hello ? hello.greeting : "Loading tRPC query..."}
-            </p>
-          </div>
+    <main className="min-h-screen bg-base-100">
+      <div className="drawer lg:drawer-open">
+        <input id="conversation-drawer" type="checkbox" className="drawer-toggle" />
+        <div className="drawer-content">
+          {/* Mobile toggle button */}
+          <label
+            htmlFor="conversation-drawer"
+            className="btn btn-ghost drawer-button fixed top-4 left-4 z-30 lg:hidden"
+          >
+            <Bars3Icon className="h-6 w-6" />
+          </label>
 
-          <LatestPost />
+          <div className="mx-auto max-w-5xl px-4 py-8">
+            <div className="flex justify-center gap-4">
+              <LanguageIcon className="h-16 w-16 text-primary" />
+              <h1 className="mb-8 text-5xl font-bold sm:text-7xl">
+                ConvoX
+              </h1>
+            </div>
+            <div className="flex items-center justify-center gap-2 mb-12">
+              <SpeakerWaveIcon className="h-6 w-6" />
+              <p className="text-xl">
+                Practice conversations with AI-generated dialogues and audio.
+              </p>
+            </div>
+            <ConversationPractice initialSessions={sessions} />
+          </div>
         </div>
-      </main>
-    </HydrateClient>
+
+        <SessionHistory />
+      </div>
+    </main>
   );
 }

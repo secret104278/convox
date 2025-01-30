@@ -8,6 +8,13 @@ export const env = createEnv({
    */
   server: {
     NODE_ENV: z.enum(["development", "test", "production"]),
+    DEEPSEEK_API_KEY: z.string(),
+    GOOGLE_APPLICATION_CREDENTIALS: z.string(),
+    OPENAI_API_KEY: z.string(),
+    OLLAMA_BASE_URL: z.string().optional(),
+    LLM_PROVIDER: z.enum(["openai", "deepseek", "ollama"]).default("openai"),
+    OLLAMA_MODEL: z.string().default("llama3.2:latest"),
+    TTS_PROVIDER: z.enum(["google", "openai"]).default("openai"),
   },
 
   /**
@@ -25,7 +32,13 @@ export const env = createEnv({
    */
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
-    // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
+    DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY,
+    GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    OLLAMA_BASE_URL: process.env.OLLAMA_BASE_URL,
+    LLM_PROVIDER: process.env.LLM_PROVIDER,
+    OLLAMA_MODEL: process.env.OLLAMA_MODEL,
+    TTS_PROVIDER: process.env.TTS_PROVIDER,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
