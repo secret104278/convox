@@ -19,9 +19,9 @@ const outputParser = StructuredOutputParser.fromZodSchema(
         text: z.string(),
         hiragana: z.string(),
         translation: z.string(),
-      })
+      }),
     ),
-  })
+  }),
 );
 
 // Initialize TTS clients
@@ -34,14 +34,15 @@ const openai = new OpenAI({
 });
 
 async function generateGoogleSpeech(text: string): Promise<Buffer> {
-  const request: protos.google.cloud.texttospeech.v1.ISynthesizeSpeechRequest = {
-    input: { text },
-    voice: {
-      languageCode: "ja-JP",
-      name: "ja-JP-Neural2-B",
-    },
-    audioConfig: { audioEncoding: "MP3" as const },
-  };
+  const request: protos.google.cloud.texttospeech.v1.ISynthesizeSpeechRequest =
+    {
+      input: { text },
+      voice: {
+        languageCode: "ja-JP",
+        name: "ja-JP-Neural2-B",
+      },
+      audioConfig: { audioEncoding: "MP3" as const },
+    };
 
   const [response] = await googleTts.synthesizeSpeech(request);
   return Buffer.from(response.audioContent as Buffer);
@@ -59,13 +60,14 @@ async function generateOpenAISpeech(text: string): Promise<Buffer> {
 
 export const conversationsRouter = createTRPCRouter({
   generate: publicProcedure
-    .input(z.object({
-      prompt: z.string(),
-      sessionId: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        prompt: z.string(),
+        sessionId: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input }) => {
       const { prompt, sessionId } = input;
-      const formatInstructions = outputParser.getFormatInstructions();
 
       // Initialize the appropriate chat model based on provider
       let model;
@@ -86,57 +88,60 @@ export const conversationsRouter = createTRPCRouter({
           break;
         default: // openai
           model = new ChatOpenAI({
-            modelName: "gpt-3.5-turbo",
-            temperature: 0.7,
+            modelName: env.OPENAI_MODEL,
+            temperature: 1,
+            topP: 1,
+            presencePenalty: 0.6,
+            frequencyPenalty: 0,
+            maxTokens: 4096,
+            cache: false,
             openAIApiKey: env.OPENAI_API_KEY,
           });
       }
 
+      model = model.withStructuredOutput(outputParser, {
+        strict: true,
+      });
+
       const response = await model.invoke([
         new SystemMessage(
-          "You are a helpful assistant that generates natural Japanese conversations. For each line, you should provide the original Japanese text (with kanji), hiragana reading, and Traditional Chinese translation."
+          `Is a humorous and lively Japanese language teacher, teaching a student with JLPT N5 to N4 proficiency. They excel at creating fun and practical teaching materials.`,
         ),
         new HumanMessage(
-          `根據以下場景生成一段日文對話：${prompt}
+          `請根據以下主題生成一段日文對話：${prompt}
 
-請生成一段自然的對話，包含8-10次交流。每一句話都需要提供：
+請創造一段自然生動的日常對話，包含8-10次交流。每一句話都需要提供：
 1. 日文原文（含漢字）
 2. 平假名拼音
 3. 繁體中文翻譯
 
-${formatInstructions}
-
 要求：
-- 日文對話要自然流暢
-- 使用適當的日文表達方式和助詞
-- 每句話要簡潔明瞭
-- 確保對話內容符合場景
-- 使用日常用語和表達方式
-- 確保繁體中文翻譯準確且自然`
+- 請避免下雨、野餐等主題
+- 對話要生動有趣，包含適當的幽默
+- 使用自然的口語表達
+- 對話內容要符合真實生活場景
+- 可以加入一些日本文化相關的內容
+- 避免過於正式或死板的表達
+- 讓對話像真實朋友之間的交流`,
         ),
       ]);
 
-      if (!response.content || typeof response.content !== "string") {
-        throw new Error("Invalid response format from model");
-      }
-
-      const parsedOutput = await outputParser.parse(response.content);
-      const conversations = parsedOutput.conversations;
+      const conversations = response.conversations as Conversation[];
 
       // Generate audio for each line using the selected provider
       const conversationsWithAudio = await Promise.all(
         conversations.map(async (conv) => {
-          const audioContent = await (env.TTS_PROVIDER === "google" 
-            ? generateGoogleSpeech(conv.text)
-            : generateOpenAISpeech(conv.text));
-          
+          const audioContent = await (env.TTS_PROVIDER === "google"
+            ? generateGoogleSpeech(conv.hiragana)
+            : generateOpenAISpeech(conv.hiragana));
+
           if (!audioContent) {
             throw new Error("Failed to generate audio");
           }
 
           const audioUrl = `data:audio/mp3;base64,${audioContent.toString("base64")}`;
           return { ...conv, audioUrl };
-        })
+        }),
       );
 
       // Save or update the session
@@ -160,26 +165,27 @@ ${formatInstructions}
       };
     }),
 
-  getSessions: publicProcedure
-    .query(async () => {
-      const dbSessions = await db.conversationSession.findMany({
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+  getSessions: publicProcedure.query(async () => {
+    const dbSessions = await db.conversationSession.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
-      return dbSessions.map(session => ({
-        ...session,
-        conversations: session.conversations as Conversation[],
-        createdAt: new Date(session.createdAt),
-        updatedAt: new Date(session.updatedAt),
-      }));
-    }),
+    return dbSessions.map((session) => ({
+      ...session,
+      conversations: session.conversations as Conversation[],
+      createdAt: new Date(session.createdAt),
+      updatedAt: new Date(session.updatedAt),
+    }));
+  }),
 
   getSession: publicProcedure
-    .input(z.object({
-      id: z.string(),
-    }))
+    .input(
+      z.object({
+        id: z.string(),
+      }),
+    )
     .query(async ({ input }) => {
       const session = await db.conversationSession.findUnique({
         where: { id: input.id },
@@ -198,13 +204,14 @@ ${formatInstructions}
     }),
 
   deleteSession: publicProcedure
-    .input(z.object({
-      id: z.string(),
-    }))
+    .input(
+      z.object({
+        id: z.string(),
+      }),
+    )
     .mutation(async ({ input }) => {
       await db.conversationSession.delete({
         where: { id: input.id },
       });
     }),
-}); 
-
+});

@@ -1,0 +1,11 @@
+This is a project for learning Japanese.
+It is built on top of Next.js, TailwindCSS, and includes advanced features like:
+- AI integration with LangChain, OpenAI, DeepSeek, and Ollama
+- Database management with Prisma
+- State management with React Query
+- Type safety with tRPC and Zod
+- Text-to-speech capabilities via Google Cloud or OpenAI
+- Modern UI components with Heroicons and Geist
+- UI styling with DaisyUI
+- Code quality tools: ESLint, Prettier, and TypeScript
+- PostCSS for CSS processing

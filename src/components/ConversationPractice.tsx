@@ -1,11 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { PlayCircleIcon, SpeakerWaveIcon, ArrowRightCircleIcon, ArrowPathIcon } from "@heroicons/react/24/solid";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  PlayCircleIcon,
+  SpeakerWaveIcon,
+  ArrowRightCircleIcon,
+  ArrowPathIcon,
+} from "@heroicons/react/24/solid";
 import { api } from "~/trpc/react";
 
 export function ConversationPractice() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session") ?? undefined;
   const isNew = searchParams.get("new") === "true";
@@ -13,7 +19,7 @@ export function ConversationPractice() {
   const utils = api.useUtils();
   const { data: currentSession } = api.conversations.getSession.useQuery(
     { id: sessionId! },
-    { enabled: !!sessionId }
+    { enabled: !!sessionId },
   );
   const conversations = currentSession?.conversations ?? [];
 
@@ -23,6 +29,7 @@ export function ConversationPractice() {
       await utils.conversations.getSession.invalidate({ id: result.sessionId });
       setCurrentIndex(-1);
       setIsPracticing(false);
+      router.push(`/?session=${result.sessionId}`);
     },
   });
 
@@ -50,7 +57,11 @@ export function ConversationPractice() {
     setCurrentIndex(0);
     // Play the first sentence if it's not the user's role
     const firstConversation = conversations[0];
-    if (firstConversation && firstConversation.role !== selectedRole && firstConversation.audioUrl) {
+    if (
+      firstConversation &&
+      firstConversation.role !== selectedRole &&
+      firstConversation.audioUrl
+    ) {
       playAudio(firstConversation.audioUrl);
     }
   };
@@ -66,7 +77,11 @@ export function ConversationPractice() {
       setCurrentIndex(nextIndex);
       // Automatically play audio if it's not the user's turn
       const nextConversation = conversations[nextIndex];
-      if (nextConversation && nextConversation.role !== selectedRole && nextConversation.audioUrl) {
+      if (
+        nextConversation &&
+        nextConversation.role !== selectedRole &&
+        nextConversation.audioUrl
+      ) {
         playAudio(nextConversation.audioUrl);
       }
     }
@@ -107,7 +122,9 @@ export function ConversationPractice() {
                   <select
                     className="select select-bordered"
                     value={selectedRole}
-                    onChange={(e) => setSelectedRole(e.target.value as "A" | "B")}
+                    onChange={(e) =>
+                      setSelectedRole(e.target.value as "A" | "B")
+                    }
                   >
                     <option value="A">角色 A</option>
                     <option value="B">角色 B</option>
@@ -120,7 +137,9 @@ export function ConversationPractice() {
                   </button>
                   <button
                     className="btn btn-primary gap-2"
-                    onClick={() => generateMutation.mutate({ prompt, sessionId })}
+                    onClick={() =>
+                      generateMutation.mutate({ prompt, sessionId })
+                    }
                     disabled={generateMutation.isPending}
                   >
                     <ArrowPathIcon className="h-5 w-5" />
@@ -143,27 +162,34 @@ export function ConversationPractice() {
                       ? "bg-accent bg-opacity-10 ring-2 ring-accent"
                       : "bg-primary bg-opacity-10 ring-2 ring-primary"
                     : index < currentIndex
-                    ? "bg-base-300 opacity-50"
-                    : "bg-base-300"
+                      ? "bg-base-300 opacity-50"
+                      : "bg-base-300"
                 }`}
               >
                 <div className="card-body gap-2 py-3">
                   <div className="flex items-center gap-4">
-                    <div className={`badge ${
-                      conv.role === selectedRole ? "badge-accent" : "badge-neutral"
-                    }`}>
+                    <div
+                      className={`badge ${
+                        conv.role === selectedRole
+                          ? "badge-accent"
+                          : "badge-neutral"
+                      }`}
+                    >
                       {conv.role}
                     </div>
                     <div className="flex-grow font-bold">{conv.text}</div>
-                    {conv.audioUrl && (index === currentIndex || !isPracticing) && (
-                      <button
-                        className="btn btn-circle btn-sm btn-ghost"
-                        onClick={() => conv.audioUrl && playAudio(conv.audioUrl)}
-                        aria-label="Play audio"
-                      >
-                        <PlayCircleIcon className="h-5 w-5" />
-                      </button>
-                    )}
+                    {conv.audioUrl &&
+                      (index === currentIndex || !isPracticing) && (
+                        <button
+                          className="btn btn-circle btn-ghost btn-sm"
+                          onClick={() =>
+                            conv.audioUrl && playAudio(conv.audioUrl)
+                          }
+                          aria-label="Play audio"
+                        >
+                          <PlayCircleIcon className="h-5 w-5" />
+                        </button>
+                      )}
                   </div>
                   <div className="text-sm opacity-60">
                     <div>{conv.hiragana}</div>
@@ -177,7 +203,7 @@ export function ConversationPractice() {
       </div>
 
       {isPracticing && (
-        <div className="fixed bottom-0 left-0 right-0 flex justify-center p-4 bg-base-100 shadow-lg">
+        <div className="fixed bottom-0 left-0 right-0 flex justify-center bg-base-100 p-4 shadow-lg">
           <div className="flex gap-4">
             <button
               className="btn btn-accent gap-2"
@@ -210,5 +236,4 @@ export function ConversationPractice() {
       )}
     </div>
   );
-} 
-
+}

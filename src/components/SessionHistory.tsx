@@ -1,6 +1,9 @@
 "use client";
 
-import { PlusCircleIcon, EllipsisVerticalIcon } from "@heroicons/react/24/solid";
+import {
+  PlusCircleIcon,
+  EllipsisVerticalIcon,
+} from "@heroicons/react/24/solid";
 import { format } from "date-fns";
 import { api } from "~/trpc/react";
 import { useRouter } from "next/navigation";
@@ -26,7 +29,10 @@ export function SessionHistory() {
     router.push(`/?session=${sessionId}`);
   };
 
-  const handleDeleteSession = async (e: React.MouseEvent, sessionId: string) => {
+  const handleDeleteSession = async (
+    e: React.MouseEvent,
+    sessionId: string,
+  ) => {
     e.preventDefault();
     if (confirm("確定要刪除這個對話嗎？")) {
       await deleteMutation.mutateAsync({ id: sessionId });
@@ -40,7 +46,7 @@ export function SessionHistory() {
         aria-label="close sidebar"
         className="drawer-overlay"
       ></label>
-      <div className="menu bg-base-200 text-base-content min-h-full w-80 p-4">
+      <div className="menu min-h-full w-80 bg-base-200 p-4 text-base-content">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold">歷史對話</h2>
           <div className="flex gap-2">
@@ -53,32 +59,30 @@ export function SessionHistory() {
             </button>
             <label
               htmlFor="conversation-drawer"
-              className="btn btn-circle btn-ghost btn-sm drawer-button lg:hidden"
+              className="btn btn-circle btn-ghost drawer-button btn-sm lg:hidden"
             >
               ✕
             </label>
           </div>
         </div>
-        <div className="space-y-2 w-full">
+        <div className="w-full space-y-2">
           {sessions!.map((session) => (
-            <div
-              key={session.id}
-              className="flex w-full items-center"
-            >
-              <button
-                className="btn btn-ghost min-w-0 flex-1 justify-start gap-2 normal-case pr-2"
+            <div key={session.id} className="flex w-full items-center">
+              <div
+                role="button"
+                className="btn btn-ghost min-w-0 flex-1 justify-start gap-2 pr-2 normal-case"
                 onClick={() => handleSessionClick(session.id)}
               >
                 <div className="min-w-0 flex-1">
                   <div className="w-full truncate text-left">
                     {session.prompt}
                   </div>
-                  <div className="text-xs opacity-60 text-left">
+                  <div className="text-left text-xs opacity-60">
                     {format(new Date(session.createdAt), "MM/dd HH:mm")}
                   </div>
                 </div>
                 <div className="dropdown dropdown-end shrink-0">
-                  <label
+                  <button
                     tabIndex={0}
                     className="btn btn-ghost btn-sm p-2"
                     onClick={(e) => {
@@ -87,10 +91,10 @@ export function SessionHistory() {
                     }}
                   >
                     <EllipsisVerticalIcon className="h-4 w-4" />
-                  </label>
-                  <ul 
+                  </button>
+                  <ul
                     tabIndex={0}
-                    className="dropdown-content menu bg-base-100 rounded-box z-50 w-40 p-2 shadow-xl"
+                    className="menu dropdown-content z-50 w-40 rounded-box bg-base-100 p-2 shadow-xl"
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
@@ -107,11 +111,11 @@ export function SessionHistory() {
                     </li>
                   </ul>
                 </div>
-              </button>
+              </div>
             </div>
           ))}
         </div>
       </div>
     </div>
   );
-} 
+}
