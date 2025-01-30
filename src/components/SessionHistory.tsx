@@ -1,13 +1,22 @@
 "use client";
 
-import { PlusCircleIcon } from "@heroicons/react/24/solid";
+import { PlusCircleIcon, EllipsisVerticalIcon } from "@heroicons/react/24/solid";
 import { format } from "date-fns";
 import { api } from "~/trpc/react";
 import { useRouter } from "next/navigation";
 
 export function SessionHistory() {
-  const { data: sessions = [] } = api.conversations.getSessions.useQuery();
+  const { data: sessions } = api.conversations.getSessions.useQuery(undefined, {
+    suspense: true,
+  });
   const router = useRouter();
+  const utils = api.useUtils();
+
+  const deleteMutation = api.conversations.deleteSession.useMutation({
+    onSuccess: async () => {
+      await utils.conversations.getSessions.invalidate();
+    },
+  });
 
   const handleNewSession = () => {
     router.push("/?new=true");
@@ -15,6 +24,13 @@ export function SessionHistory() {
 
   const handleSessionClick = (sessionId: string) => {
     router.push(`/?session=${sessionId}`);
+  };
+
+  const handleDeleteSession = async (e: React.MouseEvent, sessionId: string) => {
+    e.preventDefault();
+    if (confirm("確定要刪除這個對話嗎？")) {
+      await deleteMutation.mutateAsync({ id: sessionId });
+    }
   };
 
   return (
@@ -44,21 +60,55 @@ export function SessionHistory() {
           </div>
         </div>
         <div className="space-y-2 w-full">
-          {sessions.map((session) => (
-            <button
+          {sessions!.map((session) => (
+            <div
               key={session.id}
-              className="btn btn-ghost w-full justify-start gap-2 normal-case"
-              onClick={() => handleSessionClick(session.id)}
+              className="flex w-full items-center"
             >
-              <div className="flex flex-col items-start overflow-hidden">
-                <div className="w-full truncate text-left">
-                  {session.prompt}
+              <button
+                className="btn btn-ghost min-w-0 flex-1 justify-start gap-2 normal-case pr-2"
+                onClick={() => handleSessionClick(session.id)}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="w-full truncate text-left">
+                    {session.prompt}
+                  </div>
+                  <div className="text-xs opacity-60 text-left">
+                    {format(new Date(session.createdAt), "MM/dd HH:mm")}
+                  </div>
                 </div>
-                <div className="text-xs opacity-60">
-                  {format(new Date(session.createdAt), "MM/dd HH:mm")}
+                <div className="dropdown dropdown-end shrink-0">
+                  <label
+                    tabIndex={0}
+                    className="btn btn-ghost btn-sm p-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                  >
+                    <EllipsisVerticalIcon className="h-4 w-4" />
+                  </label>
+                  <ul 
+                    tabIndex={0}
+                    className="dropdown-content menu bg-base-100 rounded-box z-50 w-40 p-2 shadow-xl"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                  >
+                    <li>
+                      <button
+                        className="text-error"
+                        onClick={(e) => handleDeleteSession(e, session.id)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        刪除對話
+                      </button>
+                    </li>
+                  </ul>
                 </div>
-              </div>
-            </button>
+              </button>
+            </div>
           ))}
         </div>
       </div>

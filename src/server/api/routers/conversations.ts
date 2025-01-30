@@ -196,5 +196,15 @@ ${formatInstructions}
         updatedAt: new Date(session.updatedAt),
       };
     }),
+
+  deleteSession: publicProcedure
+    .input(z.object({
+      id: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      await db.conversationSession.delete({
+        where: { id: input.id },
+      });
+    }),
 }); 
 
