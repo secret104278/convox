@@ -7,12 +7,13 @@ generator json {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./db.sqlite"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Practice {
-  id            String         @id @default(cuid())
+  id            String         @id @default(ulid())
   title         String?
   prompt        String
   createdAt     DateTime       @default(now())
@@ -23,7 +24,7 @@ model Practice {
 }
 
 model Conversation {
-  id    String  @id @default(cuid())
+  id    String  @id @default(ulid())
   title String?
 
   /// [ConversationContentType]

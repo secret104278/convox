@@ -4,6 +4,7 @@ import { M_PLUS_1p } from "next/font/google";
 import { type Metadata } from "next";
 
 import { TRPCReactProvider } from "~/trpc/react";
+import { Suspense } from "react";
 
 const mPlus1p = M_PLUS_1p({
   weight: "400",
@@ -22,7 +23,9 @@ export default function RootLayout({
   return (
     <html lang="zh-TW" className={`${mPlus1p.className}`}>
       <body>
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <TRPCReactProvider>
+          <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+        </TRPCReactProvider>
       </body>
     </html>
   );

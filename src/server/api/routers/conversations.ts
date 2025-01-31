@@ -21,7 +21,10 @@ const outputParser = StructuredOutputParser.fromZodSchema(
 
 // Initialize TTS clients
 const googleTts = new TextToSpeechClient({
-  keyFilename: env.GOOGLE_APPLICATION_CREDENTIALS,
+  credentials: {
+    client_email: env.GOOGLE_CLIENT_EMAIL,
+    private_key: env.GOOGLE_PRIVATE_KEY,
+  },
 });
 
 const openai = new OpenAI({
@@ -136,7 +139,7 @@ Create a natural and lively daily conversation with 8-10 exchanges. For each sen
 1. Original Japanese text (use kanji without including furigana)
 2. Hiragana pronunciation
 3. Translation. Please use Traditional Chinese, Simplified Chinese is prohibited
-4. Brief explanation of the particle, verb conjugation, and other grammar points in the sentence, except for "${prompt}" if any. Please use Traditional Chinese, Simplified Chinese is prohibited
+4. Complete explanation of the particle, verb conjugation, and other grammar points in the sentence, except for "${prompt}" if any. Please use Traditional Chinese, Simplified Chinese is prohibited
 
 Also, generate a short title that summarizes the theme or content of the conversation.
 
@@ -156,6 +159,8 @@ Requirements:
         typeof outputParser.schema
       >;
 
+      console.log(`LLM response: ${JSON.stringify(response)}`);
+
       // Generate audio for each line using the selected provider
       const conversationsWithAudio = await Promise.all(
         sentences.map(async (conv, index) => {
@@ -163,6 +168,8 @@ Requirements:
           const audioContent = await (env.TTS_PROVIDER === "google"
             ? generateGoogleSpeech(conv.hiragana, role, voiceMode)
             : generateOpenAISpeech(conv.hiragana));
+
+          console.log(`Processing TTS: ${index} - ${conv.hiragana}`);
 
           if (!audioContent) {
             throw new Error("Failed to generate audio");

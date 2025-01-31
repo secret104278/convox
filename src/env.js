@@ -9,7 +9,8 @@ export const env = createEnv({
   server: {
     NODE_ENV: z.enum(["development", "test", "production"]),
     DEEPSEEK_API_KEY: z.string(),
-    GOOGLE_APPLICATION_CREDENTIALS: z.string(),
+    GOOGLE_CLIENT_EMAIL: z.string(),
+    GOOGLE_PRIVATE_KEY: z.string(),
     OPENAI_API_KEY: z.string(),
     OPENAI_MODEL: z.string().default("gpt-3.5-turbo"),
     OLLAMA_BASE_URL: z.string().optional(),
@@ -34,7 +35,8 @@ export const env = createEnv({
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
     DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY,
-    GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    GOOGLE_CLIENT_EMAIL: process.env.GOOGLE_CLIENT_EMAIL,
+    GOOGLE_PRIVATE_KEY: process.env.GOOGLE_PRIVATE_KEY,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     OPENAI_MODEL: process.env.OPENAI_MODEL,
     OLLAMA_BASE_URL: process.env.OLLAMA_BASE_URL,
