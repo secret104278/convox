@@ -1,10 +1,6 @@
 import { ConversationPractice } from "~/components/ConversationPractice";
 import { PracticeHistory } from "~/components/PracticeHistory";
-import {
-  LanguageIcon,
-  SpeakerWaveIcon,
-  Bars3Icon,
-} from "@heroicons/react/24/solid";
+import { LanguageIcon, Bars3Icon } from "@heroicons/react/24/solid";
 
 export default function HomePage() {
   return (

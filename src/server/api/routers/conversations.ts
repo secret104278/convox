@@ -119,7 +119,7 @@ export const conversationsRouter = createTRPCRouter({
           `Please generate a Japanese conversation based on the following topic: ${prompt}
 
 Create a natural and lively daily conversation with 8-10 exchanges. For each sentence, please provide:
-1. Original Japanese text (use kanji without including hiragana)
+1. Original Japanese text (use kanji without including furigana)
 2. Hiragana pronunciation
 3. Traditional Chinese translation, please do not use Simplified Chinese
 

@@ -16,6 +16,65 @@ import { api } from "~/trpc/react";
 import { difficultySchema } from "~/types/db";
 import { type z } from "zod";
 
+// Utility function to match Japanese text with hiragana readings
+function matchTextWithReadings(text: string, hiragana: string): string {
+  const result: string[] = [];
+  let textPos = 0;
+  let hiraganaPos = 0;
+
+  while (textPos < text.length && hiraganaPos < hiragana.length) {
+    // If characters are the same, no ruby needed
+    if (text[textPos] === hiragana[hiraganaPos]) {
+      const char = text[textPos];
+      if (char) result.push(char);
+      textPos++;
+      hiraganaPos++;
+      continue;
+    }
+
+    // Look ahead to find the next matching position
+    let lookAhead = 1;
+    let found = false;
+    let matchLength = 0;
+
+    while (textPos + lookAhead <= text.length && !found) {
+      let hiraganaLength = 0;
+
+      // Find how many hiragana characters correspond to this text part
+      for (let i = hiraganaPos; i < hiragana.length; i++) {
+        hiraganaLength++;
+        if (text[textPos + lookAhead] === hiragana[i + 1]) {
+          found = true;
+          break;
+        }
+      }
+
+      if (found || textPos + lookAhead === text.length) {
+        matchLength = hiraganaLength;
+        break;
+      }
+      lookAhead++;
+    }
+
+    // Create ruby tag for the matched section
+    const textPart = text.slice(textPos, textPos + lookAhead);
+    const readingPart = hiragana.slice(hiraganaPos, hiraganaPos + matchLength);
+    result.push(`<ruby>${textPart}<rt>${readingPart}</rt></ruby>`);
+
+    textPos += lookAhead;
+    hiraganaPos += matchLength;
+  }
+
+  // Add any remaining characters
+  while (textPos < text.length) {
+    const char = text[textPos];
+    if (char) result.push(char);
+    textPos++;
+  }
+
+  return result.join("");
+}
+
 export function ConversationPractice() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -66,6 +125,7 @@ export function ConversationPractice() {
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isPracticing, setIsPracticing] = useState(false);
   const [isBlurMode, setIsBlurMode] = useState(false);
+  const [showHiragana, setShowHiragana] = useState(true);
   const [difficulty, setDifficulty] =
     useState<z.infer<typeof difficultySchema>>("JLPT N5");
 
@@ -271,9 +331,15 @@ export function ConversationPractice() {
                                 ? "blur-sm transition-all duration-200 hover:blur-none"
                                 : ""
                             }`}
-                          >
-                            {conv.text}
-                          </div>
+                            dangerouslySetInnerHTML={{
+                              __html: showHiragana
+                                ? matchTextWithReadings(
+                                    conv.text ?? "",
+                                    conv.hiragana ?? "",
+                                  )
+                                : (conv.text ?? ""),
+                            }}
+                          />
                         </div>
                         {conv.audioUrl &&
                           (index === currentIndex || !isPracticing) && (
@@ -289,15 +355,6 @@ export function ConversationPractice() {
                           )}
                       </div>
                       <div className="flex flex-col gap-1 text-sm">
-                        <div
-                          className={`${
-                            isBlurMode
-                              ? "blur-sm transition-all duration-200 hover:blur-none"
-                              : ""
-                          } opacity-60`}
-                        >
-                          {conv.hiragana}
-                        </div>
                         <div className="mt-1 opacity-60">
                           {conv.translation}
                         </div>
@@ -328,6 +385,24 @@ export function ConversationPractice() {
                   <>
                     <EyeIcon className="h-4 w-4" />
                     練習模式關閉
+                  </>
+                )}
+              </button>
+            }
+            {
+              <button
+                className={`btn gap-2 ${showHiragana ? "btn-primary" : "btn-ghost"}`}
+                onClick={() => setShowHiragana(!showHiragana)}
+              >
+                {showHiragana ? (
+                  <>
+                    <EyeIcon className="h-4 w-4" />
+                    顯示假名
+                  </>
+                ) : (
+                  <>
+                    <EyeSlashIcon className="h-4 w-4" />
+                    隱藏假名
                   </>
                 )}
               </button>
