@@ -19,7 +19,14 @@ export function GrammarModal({ explanation, onClose }: GrammarModalProps) {
     >
       <div className="modal-box">
         <h3 className="text-lg font-bold">文法說明</h3>
-        <p className="whitespace-pre-wrap py-4">{explanation}</p>
+        <p className="whitespace-pre-wrap py-4">
+          {explanation.split("\\n").map((line, i) => (
+            <span key={i}>
+              {line}
+              <br />
+            </span>
+          ))}
+        </p>
         <div className="modal-action">
           <button className="btn" onClick={onClose}>
             關閉
