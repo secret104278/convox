@@ -13,6 +13,8 @@ import {
   ArrowUpCircleIcon,
 } from "@heroicons/react/24/solid";
 import { api } from "~/trpc/react";
+import { difficultySchema } from "~/types/db";
+import { type z } from "zod";
 
 export function ConversationPractice() {
   const router = useRouter();
@@ -64,6 +66,8 @@ export function ConversationPractice() {
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isPracticing, setIsPracticing] = useState(false);
   const [isBlurMode, setIsBlurMode] = useState(false);
+  const [difficulty, setDifficulty] =
+    useState<z.infer<typeof difficultySchema>>("JLPT N5");
 
   // Add ref for the current conversation card
   const currentCardRef = useRef<HTMLDivElement>(null);
@@ -191,10 +195,23 @@ export function ConversationPractice() {
                 disabled={!isNew}
               />
               <div className="mt-4 flex gap-4">
+                <select
+                  className="select select-bordered"
+                  value={difficulty}
+                  onChange={(e) =>
+                    setDifficulty(e.target.value as typeof difficulty)
+                  }
+                >
+                  {difficultySchema.options.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
                 <button
                   className="btn btn-primary gap-2"
                   onClick={() =>
-                    generateMutation.mutate({ prompt, practiceId })
+                    generateMutation.mutate({ prompt, practiceId, difficulty })
                   }
                   disabled={generateMutation.isPending}
                 >
@@ -215,74 +232,82 @@ export function ConversationPractice() {
             </div>
           )}
 
-          <div className="divider"></div>
-
-          <div className="space-y-4 pb-24">
-            {conversations.map((conv, index) => (
-              <div
-                key={index}
-                ref={index === currentIndex ? currentCardRef : undefined}
-                className={`group card ${
-                  index === currentIndex
-                    ? conv.role === selectedRole
-                      ? "bg-accent bg-opacity-10 ring-2 ring-accent"
-                      : "bg-primary bg-opacity-10 ring-2 ring-primary"
-                    : index < currentIndex
-                      ? "bg-base-300 opacity-50"
-                      : "bg-base-300"
-                }`}
-              >
-                <div className="card-body gap-2 py-3">
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`badge ${
-                        conv.role === selectedRole
-                          ? "badge-accent"
-                          : "badge-neutral"
-                      }`}
-                    >
-                      {conv.role}
-                    </div>
-                    <div className="flex-grow">
-                      <div
-                        className={`group/text font-bold ${
-                          isBlurMode
-                            ? "blur-sm transition-all duration-200 hover:blur-none"
-                            : ""
-                        }`}
-                      >
-                        {conv.text}
+          {currentConversation && (
+            <>
+              <div className="divider"></div>
+              <h2 className="mb-4 text-xl font-bold">
+                {currentConversation.title}
+              </h2>
+              <div className="space-y-4 pb-24">
+                {conversations.map((conv, index) => (
+                  <div
+                    key={index}
+                    ref={index === currentIndex ? currentCardRef : undefined}
+                    className={`group card ${
+                      index === currentIndex
+                        ? conv.role === selectedRole
+                          ? "bg-accent bg-opacity-10 ring-2 ring-accent"
+                          : "bg-primary bg-opacity-10 ring-2 ring-primary"
+                        : index < currentIndex
+                          ? "bg-base-300 opacity-50"
+                          : "bg-base-300"
+                    }`}
+                  >
+                    <div className="card-body gap-2 py-3">
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={`badge ${
+                            conv.role === selectedRole
+                              ? "badge-accent"
+                              : "badge-neutral"
+                          }`}
+                        >
+                          {conv.role}
+                        </div>
+                        <div className="flex-grow">
+                          <div
+                            className={`group/text font-bold ${
+                              isBlurMode
+                                ? "blur-sm transition-all duration-200 hover:blur-none"
+                                : ""
+                            }`}
+                          >
+                            {conv.text}
+                          </div>
+                        </div>
+                        {conv.audioUrl &&
+                          (index === currentIndex || !isPracticing) && (
+                            <button
+                              className="btn btn-circle btn-ghost btn-sm"
+                              onClick={() =>
+                                conv.audioUrl && playAudio(conv.audioUrl)
+                              }
+                              aria-label="Play audio"
+                            >
+                              <PlayCircleIcon className="h-5 w-5" />
+                            </button>
+                          )}
+                      </div>
+                      <div className="flex flex-col gap-1 text-sm">
+                        <div
+                          className={`${
+                            isBlurMode
+                              ? "blur-sm transition-all duration-200 hover:blur-none"
+                              : ""
+                          } opacity-60`}
+                        >
+                          {conv.hiragana}
+                        </div>
+                        <div className="mt-1 opacity-60">
+                          {conv.translation}
+                        </div>
                       </div>
                     </div>
-                    {conv.audioUrl &&
-                      (index === currentIndex || !isPracticing) && (
-                        <button
-                          className="btn btn-circle btn-ghost btn-sm"
-                          onClick={() =>
-                            conv.audioUrl && playAudio(conv.audioUrl)
-                          }
-                          aria-label="Play audio"
-                        >
-                          <PlayCircleIcon className="h-5 w-5" />
-                        </button>
-                      )}
                   </div>
-                  <div className="flex flex-col gap-1 text-sm">
-                    <div
-                      className={`${
-                        isBlurMode
-                          ? "blur-sm transition-all duration-200 hover:blur-none"
-                          : ""
-                      } opacity-60`}
-                    >
-                      {conv.hiragana}
-                    </div>
-                    <div className="mt-1 opacity-60">{conv.translation}</div>
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       </div>
 

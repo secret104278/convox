@@ -12,6 +12,15 @@ export const llmConversationSchema = z.object({
   ),
 });
 
+export const difficultySchema = z.enum([
+  "JLPT N5",
+  "JLPT N5-N4",
+  "JLPT N4",
+  "JLPT N3",
+  "JLPT N2",
+  "JLPT N1",
+]);
+
 type LLMConversation = z.infer<typeof llmConversationSchema>;
 
 type ConversationSentence = LLMConversation["sentences"][number] & {

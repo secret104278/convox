@@ -9,7 +9,7 @@ import { StructuredOutputParser } from "langchain/output_parsers";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { env } from "~/env";
 import { db } from "~/server/db";
-import { llmConversationSchema } from "~/types/db";
+import { llmConversationSchema, difficultySchema } from "~/types/db";
 
 const outputParser = StructuredOutputParser.fromZodSchema(
   llmConversationSchema,
@@ -55,10 +55,27 @@ export const conversationsRouter = createTRPCRouter({
       z.object({
         prompt: z.string(),
         practiceId: z.string().optional(),
+        difficulty: difficultySchema,
       }),
     )
     .mutation(async ({ input }) => {
-      const { prompt, practiceId } = input;
+      const { prompt, practiceId, difficulty } = input;
+
+      // Get existing conversation titles if practiceId exists
+      const existingTitles: string[] = ["rain", "picnic", "umbrella"];
+      if (practiceId) {
+        const practice = await db.practice.findUnique({
+          where: { id: practiceId },
+          select: { conversations: { select: { title: true } } },
+        });
+        if (practice) {
+          existingTitles.push(
+            ...practice.conversations
+              .map((conv) => conv.title)
+              .filter((title) => title !== null),
+          );
+        }
+      }
 
       // Initialize the appropriate chat model based on provider
       let model;
@@ -109,8 +126,8 @@ Create a natural and lively daily conversation with 8-10 exchanges. For each sen
 Also, generate a short title that summarizes the theme or content of the conversation.
 
 Requirements:
-- Generate a conversation at JLPT N5 to N4 level
-- Avoid topics like rain or picnics
+- Generate a conversation at ${difficulty} level
+- Avoid topics like ${existingTitles.map((title) => `"${title}"`).join(", ")}
 - Make the conversation lively and include appropriate humor
 - Use natural spoken language
 - Ensure the content reflects real-life situations

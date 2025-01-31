@@ -30,7 +30,6 @@ export default function HomePage() {
               <h1 className="mb-8 text-5xl font-bold sm:text-7xl">ConvoX</h1>
             </div>
             <div className="mb-12 flex items-center justify-center gap-2">
-              <SpeakerWaveIcon className="h-6 w-6" />
               <p className="text-xl">
                 Practice conversations with AI-generated dialogues and audio.
               </p>
