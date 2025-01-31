@@ -6,6 +6,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   PencilIcon,
+  TrashIcon,
 } from "@heroicons/react/24/solid";
 import { format } from "date-fns";
 import { api } from "~/trpc/react";
@@ -150,7 +151,7 @@ export function PracticeHistory() {
               </label>
             </div>
           </div>
-          {isPracticesLoading ? (
+          {isPracticesLoading || deleteConversationMutation.isPending ? (
             <div className="flex h-32 items-center justify-center">
               <span className="loading loading-spinner loading-lg"></span>
             </div>
@@ -251,42 +252,14 @@ export function PracticeHistory() {
                               )}
                             </div>
                           </div>
-                          <div className="dropdown dropdown-end">
-                            <button
-                              className="btn btn-ghost btn-sm p-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                              }}
-                            >
-                              <EllipsisVerticalIcon className="h-4 w-4" />
-                            </button>
-                            <ul
-                              className="menu dropdown-content z-50 w-40 rounded-box bg-base-100 p-2 shadow-xl"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                              }}
-                            >
-                              <li>
-                                <button
-                                  className={`text-error ${deleteConversationMutation.isPending ? "loading" : ""}`}
-                                  onClick={(e) =>
-                                    handleDeleteConversation(e, conversation.id)
-                                  }
-                                  disabled={
-                                    deleteConversationMutation.isPending
-                                  }
-                                >
-                                  {deleteConversationMutation.isPending ? (
-                                    <span className="loading loading-spinner loading-sm"></span>
-                                  ) : (
-                                    "刪除對話"
-                                  )}
-                                </button>
-                              </li>
-                            </ul>
-                          </div>
+                          <button
+                            className="btn btn-ghost btn-sm p-2 text-error"
+                            onClick={(e) =>
+                              handleDeleteConversation(e, conversation.id)
+                            }
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
                         </div>
                       ))}
                     </div>

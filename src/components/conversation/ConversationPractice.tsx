@@ -176,10 +176,8 @@ export function ConversationPractice() {
           {currentConversation && (
             <>
               <div className="divider"></div>
+              <h2 className="text-xl font-bold">{currentConversation.title}</h2>
               <div className="mb-4 flex items-center gap-2">
-                <h2 className="text-xl font-bold">
-                  {currentConversation.title}
-                </h2>
                 {currentConversation.difficulty && (
                   <div className="badge badge-info badge-outline shrink-0">
                     {currentConversation.difficulty}
@@ -202,7 +200,7 @@ export function ConversationPractice() {
                   </div>
                 )}
               </div>
-              <div className="space-y-4 pb-48 sm:pb-24">
+              <div className="space-y-4 pb-48 sm:pb-12">
                 {sentences.map((sentence, index) => (
                   <SentenceCard
                     key={index}
@@ -231,7 +229,7 @@ export function ConversationPractice() {
       />
 
       {sentences.length > 0 && !isNew && (
-        <div className="fixed bottom-0 left-0 right-0 flex justify-center bg-base-100 p-2 shadow-lg sm:p-4 lg:left-80">
+        <div className="fixed bottom-0 left-0 right-0 flex justify-center bg-neutral p-2 shadow-lg sm:p-4 lg:left-80">
           <div className="flex w-full max-w-screen-lg flex-wrap items-center justify-center gap-2 px-2 sm:gap-4 sm:px-4">
             <PracticeSettings
               isBlurMode={isBlurMode}
