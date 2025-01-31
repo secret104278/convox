@@ -163,6 +163,22 @@ export function ConversationPractice() {
     }
   }, [conversations, currentIndex, selectedRole]);
 
+  const handlePrevious = useCallback(() => {
+    if (currentIndex > 0) {
+      const prevIndex = currentIndex - 1;
+      setCurrentIndex(prevIndex);
+      // Automatically play audio if it's not the user's turn or if in All mode
+      const prevConversation = conversations[prevIndex];
+      if (
+        prevConversation &&
+        (selectedRole === "All" || prevConversation.role !== selectedRole) &&
+        prevConversation.audioUrl
+      ) {
+        playAudio(prevConversation.audioUrl);
+      }
+    }
+  }, [conversations, currentIndex, selectedRole]);
+
   const replayAudio = useCallback(() => {
     const currentConv = conversations[currentIndex];
     if (currentConv?.audioUrl) {
@@ -188,6 +204,10 @@ export function ConversationPractice() {
             event.preventDefault();
             handleNext();
             break;
+          case "ArrowLeft":
+            event.preventDefault();
+            handlePrevious();
+            break;
           case "ArrowUp":
             event.preventDefault();
             replayAudio();
@@ -200,7 +220,7 @@ export function ConversationPractice() {
     return () => {
       window.removeEventListener("keydown", handleKeyPress);
     };
-  }, [isPracticing, currentIndex, handleNext, replayAudio]);
+  }, [isPracticing, currentIndex, handleNext, handlePrevious, replayAudio]);
 
   const startPractice = () => {
     currentAudioController.current?.abort();
@@ -236,6 +256,7 @@ export function ConversationPractice() {
   };
 
   const isLastLine = currentIndex === conversations.length - 1;
+  const isFirstLine = currentIndex === 0;
 
   return (
     <div className="relative min-h-[50vh]">
@@ -407,19 +428,7 @@ export function ConversationPractice() {
                 )}
               </button>
             }
-            {(!isPracticing || isLastLine) && (
-              <select
-                className="select select-bordered"
-                value={selectedRole}
-                onChange={(e) =>
-                  setSelectedRole(e.target.value as "A" | "B" | "All")
-                }
-              >
-                <option value="A">角色 A</option>
-                <option value="B">角色 B</option>
-                <option value="All">角色 All</option>
-              </select>
-            )}
+
             {!isPracticing && (
               <button
                 className="btn btn-secondary gap-2"
@@ -427,6 +436,17 @@ export function ConversationPractice() {
               >
                 <PlayCircleIcon className="h-5 w-5" />
                 開始對話
+              </button>
+            )}
+
+            {isPracticing && (
+              <button
+                className="btn btn-accent gap-2"
+                onClick={handlePrevious}
+                disabled={isFirstLine}
+              >
+                <ArrowRightCircleIcon className="h-5 w-5 rotate-180" />
+                上一句
               </button>
             )}
             {isPracticing && (
@@ -440,6 +460,19 @@ export function ConversationPractice() {
                 <ArrowRightCircleIcon className="h-5 w-5" />
                 下一句
               </button>
+            )}
+            {(!isPracticing || isLastLine) && (
+              <select
+                className="select select-bordered"
+                value={selectedRole}
+                onChange={(e) =>
+                  setSelectedRole(e.target.value as "A" | "B" | "All")
+                }
+              >
+                <option value="A">角色 A</option>
+                <option value="B">角色 B</option>
+                <option value="All">角色 All</option>
+              </select>
             )}
             {isPracticing && isLastLine && (
               <button
