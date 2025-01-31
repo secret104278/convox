@@ -39,7 +39,22 @@ export function PracticeControls({
           開始對話
         </button>
       )}
-
+      {(!isPracticing || isLastLine) && (
+        <select
+          className="select select-bordered w-auto"
+          value={selectedRole}
+          onChange={(e) => onRoleChange(e.target.value as "A" | "B" | "All")}
+        >
+          <option value="A">角色 A</option>
+          <option value="B">角色 B</option>
+          <option value="All">角色 All</option>
+        </select>
+      )}
+      {isPracticing && isLastLine && (
+        <button className="btn btn-secondary gap-2" onClick={onStart}>
+          <ArrowPathIcon className="h-5 w-5" />
+        </button>
+      )}
       {isPracticing && (
         <button
           className="btn btn-accent gap-2"
@@ -54,25 +69,13 @@ export function PracticeControls({
           <ArrowUpCircleIcon className="h-5 w-5" />
         </button>
       )}
-      {isPracticing && !isLastLine && (
-        <button className="btn btn-accent gap-2" onClick={onNext}>
-          <ArrowRightCircleIcon className="h-5 w-5" />
-        </button>
-      )}
-      {(!isPracticing || isLastLine) && (
-        <select
-          className="select select-bordered w-full sm:w-auto"
-          value={selectedRole}
-          onChange={(e) => onRoleChange(e.target.value as "A" | "B" | "All")}
+      {isPracticing && (
+        <button
+          className="btn btn-accent gap-2"
+          onClick={onNext}
+          disabled={isLastLine}
         >
-          <option value="A">角色 A</option>
-          <option value="B">角色 B</option>
-          <option value="All">角色 All</option>
-        </select>
-      )}
-      {isPracticing && isLastLine && (
-        <button className="btn btn-secondary gap-2" onClick={onStart}>
-          <ArrowPathIcon className="h-5 w-5" />
+          <ArrowRightCircleIcon className="h-5 w-5" />
         </button>
       )}
       {isPracticing && (

@@ -200,7 +200,7 @@ export function ConversationPractice() {
                   </div>
                 )}
               </div>
-              <div className="space-y-4 pb-48 sm:pb-12">
+              <div className="space-y-4 pb-36 sm:pb-12">
                 {sentences.map((sentence, index) => (
                   <SentenceCard
                     key={index}
