@@ -96,26 +96,27 @@ export const conversationsRouter = createTRPCRouter({
 
       const response = await model.invoke([
         new SystemMessage(
-          `Is a humorous and lively Japanese language teacher, teaching a student with JLPT N5 to N4 proficiency. They excel at creating fun and practical teaching materials.`,
+          `You are a humorous and lively Japanese language teacher. You excel at creating fun and practical teaching materials but also keep the conversation natural and lively.`,
         ),
         new HumanMessage(
-          `請根據以下主題生成一段日文對話：${prompt}
+          `Please generate a Japanese conversation based on the following topic: ${prompt}
 
-請創造一段自然生動的日常對話，包含8-10次交流。每一句話都需要提供：
-1. 日文原文（含漢字）
-2. 平假名拼音
-3. 繁體中文翻譯
+Create a natural and lively daily conversation with 8-10 exchanges. For each sentence, please provide:
+1. Original Japanese text (use kanji without including hiragana)
+2. Hiragana pronunciation
+3. Traditional Chinese translation, please do not use Simplified Chinese
 
-同時，請為這段對話生成一個簡短的標題，用來概括對話的主題或內容。
+Also, generate a short title that summarizes the theme or content of the conversation.
 
-要求：
-- 請避免下雨、野餐等主題
-- 對話要生動有趣，包含適當的幽默
-- 使用自然的口語表達
-- 對話內容要符合真實生活場景
-- 可以加入一些日本文化相關的內容
-- 避免過於正式或死板的表達
-- 讓對話像真實朋友之間的交流`,
+Requirements:
+- Generate a conversation at JLPT N5 to N4 level
+- Avoid topics like rain or picnics
+- Make the conversation lively and include appropriate humor
+- Use natural spoken language
+- Ensure the content reflects real-life situations
+- You can include some Japanese cultural elements
+- Avoid overly formal or stiff expressions
+- Make the conversation sound like a real exchange between friends`,
         ),
       ]);
 

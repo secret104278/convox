@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   PlayCircleIcon,
   SpeakerWaveIcon,
   ArrowRightCircleIcon,
   ArrowPathIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  StopIcon,
+  ArrowUpCircleIcon,
 } from "@heroicons/react/24/solid";
 import { api } from "~/trpc/react";
 
@@ -28,7 +32,11 @@ export function ConversationPractice() {
       { id: conversationId! },
       { enabled: !!conversationId },
     );
-  const conversations = currentConversation?.content ?? [];
+
+  const conversations = useMemo(
+    () => currentConversation?.content ?? [],
+    [currentConversation],
+  );
 
   const generateMutation = api.conversations.generate.useMutation({
     onSuccess: async (result) => {
@@ -52,9 +60,14 @@ export function ConversationPractice() {
   });
 
   const [prompt, setPrompt] = useState(currentPractice?.prompt ?? "");
-  const [selectedRole, setSelectedRole] = useState<"A" | "B">("A");
+  const [selectedRole, setSelectedRole] = useState<"A" | "B" | "All">("All");
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isPracticing, setIsPracticing] = useState(false);
+  const [isBlurMode, setIsBlurMode] = useState(false);
+
+  // Add ref for the current conversation card
+  const currentCardRef = useRef<HTMLDivElement>(null);
+  const currentAudioController = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (currentPractice) {
@@ -70,14 +83,71 @@ export function ConversationPractice() {
     }
   }, [isNew]);
 
+  const handleNext = useCallback(() => {
+    if (currentIndex < conversations.length - 1) {
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      // Automatically play audio if it's not the user's turn or if in All mode
+      const nextConversation = conversations[nextIndex];
+      if (
+        nextConversation &&
+        (selectedRole === "All" || nextConversation.role !== selectedRole) &&
+        nextConversation.audioUrl
+      ) {
+        playAudio(nextConversation.audioUrl);
+      }
+    }
+  }, [conversations, currentIndex, selectedRole]);
+
+  const replayAudio = useCallback(() => {
+    const currentConv = conversations[currentIndex];
+    if (currentConv?.audioUrl) {
+      playAudio(currentConv.audioUrl);
+    }
+  }, [conversations, currentIndex]);
+
+  // Add effect for scrolling
+  useEffect(() => {
+    if (currentCardRef.current && isPracticing) {
+      currentCardRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [currentIndex, isPracticing]);
+
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (isPracticing) {
+        switch (event.key) {
+          case "ArrowRight":
+            event.preventDefault();
+            handleNext();
+            break;
+          case "ArrowUp":
+            event.preventDefault();
+            replayAudio();
+            break;
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => {
+      window.removeEventListener("keydown", handleKeyPress);
+    };
+  }, [isPracticing, currentIndex, handleNext, replayAudio]);
+
   const startPractice = () => {
+    currentAudioController.current?.abort();
+
     setIsPracticing(true);
     setCurrentIndex(0);
-    // Play the first sentence if it's not the user's role
+    // Play the first sentence if it's not the user's role or if in All mode
     const firstConversation = conversations[0];
     if (
       firstConversation &&
-      firstConversation.role !== selectedRole &&
+      (selectedRole === "All" || firstConversation.role !== selectedRole) &&
       firstConversation.audioUrl
     ) {
       playAudio(firstConversation.audioUrl);
@@ -85,27 +155,18 @@ export function ConversationPractice() {
   };
 
   const playAudio = (audioUrl: string) => {
+    currentAudioController.current?.abort();
+    currentAudioController.current = new AbortController();
+
     const audio = new Audio(audioUrl);
     audio.play().catch(console.error);
-  };
-
-  const handleNext = () => {
-    if (currentIndex < conversations.length - 1) {
-      const nextIndex = currentIndex + 1;
-      setCurrentIndex(nextIndex);
-      // Automatically play audio if it's not the user's turn
-      const nextConversation = conversations[nextIndex];
-      if (
-        nextConversation &&
-        nextConversation.role !== selectedRole &&
-        nextConversation.audioUrl
-      ) {
-        playAudio(nextConversation.audioUrl);
-      }
-    }
+    currentAudioController.current.signal.onabort = () => {
+      audio.pause();
+    };
   };
 
   const resetPractice = () => {
+    currentAudioController.current?.abort();
     setIsPracticing(false);
     setCurrentIndex(-1);
   };
@@ -123,65 +184,33 @@ export function ConversationPractice() {
           ) : (
             <div className="form-control">
               <textarea
-                className="textarea textarea-bordered h-32"
-                placeholder="輸入場景（例如：生成一段關於在餐廳點餐的對話）"
+                className="textarea textarea-bordered h-16"
+                placeholder="輸入主題"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                disabled={isPracticing}
+                disabled={!isNew}
               />
               <div className="mt-4 flex gap-4">
-                {!conversations.length && (
-                  <button
-                    className="btn btn-primary gap-2"
-                    onClick={() =>
-                      generateMutation.mutate({ prompt, practiceId })
-                    }
-                    disabled={generateMutation.isPending}
-                  >
-                    {generateMutation.isPending ? (
-                      <span className="loading loading-spinner"></span>
-                    ) : (
-                      <SpeakerWaveIcon className="h-5 w-5" />
-                    )}
-                    {generateMutation.isPending ? "生成中..." : "生成對話"}
-                  </button>
-                )}
-                {conversations.length > 0 && !isPracticing && (
-                  <>
-                    <select
-                      className="select select-bordered"
-                      value={selectedRole}
-                      onChange={(e) =>
-                        setSelectedRole(e.target.value as "A" | "B")
-                      }
-                    >
-                      <option value="A">角色 A</option>
-                      <option value="B">角色 B</option>
-                    </select>
-                    <button
-                      className="btn btn-secondary gap-2"
-                      onClick={startPractice}
-                    >
-                      開始練習
-                    </button>
-                    <button
-                      className="btn btn-primary gap-2"
-                      onClick={() =>
-                        generateMutation.mutate({ prompt, practiceId })
-                      }
-                      disabled={generateMutation.isPending}
-                    >
-                      {generateMutation.isPending ? (
-                        <span className="loading loading-spinner"></span>
-                      ) : (
-                        <ArrowPathIcon className="h-5 w-5" />
-                      )}
-                      {generateMutation.isPending
-                        ? "重新生成中..."
-                        : "重新生成"}
-                    </button>
-                  </>
-                )}
+                <button
+                  className="btn btn-primary gap-2"
+                  onClick={() =>
+                    generateMutation.mutate({ prompt, practiceId })
+                  }
+                  disabled={generateMutation.isPending}
+                >
+                  {generateMutation.isPending ? (
+                    <span className="loading loading-spinner"></span>
+                  ) : isNew ? (
+                    <SpeakerWaveIcon className="h-5 w-5" />
+                  ) : (
+                    <ArrowPathIcon className="h-5 w-5" />
+                  )}
+                  {generateMutation.isPending
+                    ? "生成中..."
+                    : isNew
+                      ? "生成對話"
+                      : "生成更多對話"}
+                </button>
               </div>
             </div>
           )}
@@ -192,7 +221,8 @@ export function ConversationPractice() {
             {conversations.map((conv, index) => (
               <div
                 key={index}
-                className={`card ${
+                ref={index === currentIndex ? currentCardRef : undefined}
+                className={`group card ${
                   index === currentIndex
                     ? conv.role === selectedRole
                       ? "bg-accent bg-opacity-10 ring-2 ring-accent"
@@ -213,7 +243,17 @@ export function ConversationPractice() {
                     >
                       {conv.role}
                     </div>
-                    <div className="flex-grow font-bold">{conv.text}</div>
+                    <div className="flex-grow">
+                      <div
+                        className={`group/text font-bold ${
+                          isBlurMode
+                            ? "blur-sm transition-all duration-200 hover:blur-none"
+                            : ""
+                        }`}
+                      >
+                        {conv.text}
+                      </div>
+                    </div>
                     {conv.audioUrl &&
                       (index === currentIndex || !isPracticing) && (
                         <button
@@ -227,9 +267,17 @@ export function ConversationPractice() {
                         </button>
                       )}
                   </div>
-                  <div className="text-sm opacity-60">
-                    <div>{conv.hiragana}</div>
-                    <div>{conv.translation}</div>
+                  <div className="flex flex-col gap-1 text-sm">
+                    <div
+                      className={`${
+                        isBlurMode
+                          ? "blur-sm transition-all duration-200 hover:blur-none"
+                          : ""
+                      } opacity-60`}
+                    >
+                      {conv.hiragana}
+                    </div>
+                    <div className="mt-1 opacity-60">{conv.translation}</div>
                   </div>
                 </div>
               </div>
@@ -238,36 +286,75 @@ export function ConversationPractice() {
         </div>
       </div>
 
-      {isPracticing && (
+      {conversations.length > 0 && !isNew && (
         <div className="fixed bottom-0 left-0 right-0 flex justify-center bg-base-100 p-4 shadow-lg">
-          <div className="flex gap-4">
-            <button
-              className="btn btn-accent gap-2"
-              onClick={handleNext}
-              disabled={isLastLine}
-            >
-              <ArrowRightCircleIcon className="h-5 w-5" />
-              {isLastLine ? "練習完成" : "下一句"}
-            </button>
-            {isLastLine && (
-              <>
-                <button
-                  className="btn btn-secondary gap-2"
-                  onClick={resetPractice}
-                >
-                  <ArrowPathIcon className="h-5 w-5" />
-                  重新練習
-                </button>
-                <button
-                  className="btn btn-primary gap-2"
-                  onClick={() =>
-                    generateMutation.mutate({ prompt, practiceId })
-                  }
-                >
-                  <SpeakerWaveIcon className="h-5 w-5" />
-                  生成新對話
-                </button>
-              </>
+          <div className="flex items-center gap-4">
+            {
+              <button
+                className={`btn gap-2 ${isBlurMode ? "btn-primary" : "btn-ghost"}`}
+                onClick={() => setIsBlurMode(!isBlurMode)}
+              >
+                {isBlurMode ? (
+                  <>
+                    <EyeSlashIcon className="h-4 w-4" />
+                    練習模式開啟
+                  </>
+                ) : (
+                  <>
+                    <EyeIcon className="h-4 w-4" />
+                    練習模式關閉
+                  </>
+                )}
+              </button>
+            }
+            {(!isPracticing || isLastLine) && (
+              <select
+                className="select select-bordered"
+                value={selectedRole}
+                onChange={(e) =>
+                  setSelectedRole(e.target.value as "A" | "B" | "All")
+                }
+              >
+                <option value="A">角色 A</option>
+                <option value="B">角色 B</option>
+                <option value="All">角色 All</option>
+              </select>
+            )}
+            {!isPracticing && (
+              <button
+                className="btn btn-secondary gap-2"
+                onClick={startPractice}
+              >
+                <PlayCircleIcon className="h-5 w-5" />
+                開始對話
+              </button>
+            )}
+            {isPracticing && (
+              <button className="btn btn-accent gap-2" onClick={replayAudio}>
+                <ArrowUpCircleIcon className="h-5 w-5" />
+                重聽
+              </button>
+            )}
+            {isPracticing && !isLastLine && (
+              <button className="btn btn-accent gap-2" onClick={handleNext}>
+                <ArrowRightCircleIcon className="h-5 w-5" />
+                下一句
+              </button>
+            )}
+            {isPracticing && isLastLine && (
+              <button
+                className="btn btn-secondary gap-2"
+                onClick={startPractice}
+              >
+                <ArrowPathIcon className="h-5 w-5" />
+                重新練習
+              </button>
+            )}
+            {isPracticing && (
+              <button className="btn btn-error gap-2" onClick={resetPractice}>
+                <StopIcon className="h-5 w-5" />
+                停止練習
+              </button>
             )}
           </div>
         </div>
