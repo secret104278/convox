@@ -36,8 +36,8 @@ export function SentenceCard({
           : "bg-base-300"
       }`}
     >
-      <div className="card-body gap-2 py-3">
-        <div className="flex flex-wrap items-center gap-4">
+      <div className="card-body gap-2 px-5 py-3">
+        <div className="flex items-center gap-4">
           <div
             className={`badge shrink-0 ${
               sentence.role === selectedRole ? "badge-accent" : "badge-neutral"
@@ -45,7 +45,7 @@ export function SentenceCard({
           >
             {sentence.role}
           </div>
-          <div className="min-w-0 flex-grow">
+          <div className="flex flex-grow flex-col gap-1">
             <div
               className={`group/text break-words font-bold ${
                 isBlurMode
@@ -61,6 +61,9 @@ export function SentenceCard({
                   : (sentence.text ?? ""),
               }}
             />
+            <div className="break-words text-sm opacity-60">
+              {sentence.translation}
+            </div>
           </div>
           <div className="flex shrink-0 gap-2">
             {sentence.audioUrl && (isActive || !isPracticing) && (
@@ -82,11 +85,6 @@ export function SentenceCard({
                 <AcademicCapIcon className="h-5 w-5" />
               </button>
             )}
-          </div>
-        </div>
-        <div className="flex flex-col gap-1 text-sm">
-          <div className="mt-1 break-words opacity-60">
-            {sentence.translation}
           </div>
         </div>
       </div>

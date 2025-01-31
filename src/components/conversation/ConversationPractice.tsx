@@ -100,7 +100,7 @@ export function ConversationPractice() {
             <div className="form-control">
               {isNew ? (
                 <textarea
-                  className="textarea textarea-bordered h-16"
+                  className="textarea textarea-bordered h-48"
                   placeholder="輸入主題"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
