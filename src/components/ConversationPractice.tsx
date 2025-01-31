@@ -283,8 +283,8 @@ export function ConversationPractice() {
 
   return (
     <div className="relative min-h-[50vh]">
-      <div className="card bg-base-200 shadow-xl">
-        <div className="card-body">
+      <div className="card -mx-4 rounded-none bg-base-200 shadow-xl sm:mx-0 sm:rounded-xl">
+        <div className="card-body p-4 sm:p-8">
           {isPracticeLoading || isConversationLoading ? (
             <div className="flex h-32 items-center justify-center">
               <span className="loading loading-spinner loading-lg"></span>
@@ -298,9 +298,9 @@ export function ConversationPractice() {
                 onChange={(e) => setPrompt(e.target.value)}
                 disabled={!isNew}
               />
-              <div className="mt-4 flex gap-4">
+              <div className="mt-4 flex flex-wrap gap-4">
                 <select
-                  className="select select-bordered"
+                  className="select select-bordered w-full sm:w-auto"
                   value={difficulty}
                   onChange={(e) =>
                     setDifficulty(e.target.value as typeof difficulty)
@@ -313,7 +313,7 @@ export function ConversationPractice() {
                   ))}
                 </select>
                 <select
-                  className="select select-bordered"
+                  className="select select-bordered w-full sm:w-auto"
                   value={voiceMode}
                   onChange={(e) =>
                     setVoiceMode(
@@ -325,7 +325,7 @@ export function ConversationPractice() {
                   <option value="same">相同聲音</option>
                 </select>
                 <button
-                  className="btn btn-primary gap-2"
+                  className="btn btn-primary w-full gap-2 sm:w-auto"
                   onClick={() =>
                     generateMutation.mutate({
                       prompt,
@@ -359,12 +359,12 @@ export function ConversationPractice() {
               <h2 className="mb-4 text-xl font-bold">
                 {currentConversation.title}
               </h2>
-              <div className="space-y-4 pb-24">
+              <div className="space-y-4 pb-32 sm:pb-24">
                 {conversations.map((conv, index) => (
                   <div
                     key={index}
                     ref={index === currentIndex ? currentCardRef : undefined}
-                    className={`group card ${
+                    className={`group card min-w-0 ${
                       index === currentIndex
                         ? conv.role === selectedRole
                           ? "bg-accent bg-opacity-10 ring-2 ring-accent"
@@ -375,9 +375,9 @@ export function ConversationPractice() {
                     }`}
                   >
                     <div className="card-body gap-2 py-3">
-                      <div className="flex items-center gap-4">
+                      <div className="flex flex-wrap items-center gap-4">
                         <div
-                          className={`badge ${
+                          className={`badge shrink-0 ${
                             conv.role === selectedRole
                               ? "badge-accent"
                               : "badge-neutral"
@@ -385,9 +385,9 @@ export function ConversationPractice() {
                         >
                           {conv.role}
                         </div>
-                        <div className="flex-grow">
+                        <div className="min-w-0 flex-grow">
                           <div
-                            className={`group/text font-bold ${
+                            className={`group/text break-words font-bold ${
                               isBlurMode
                                 ? "blur-sm transition-all duration-200 hover:blur-none"
                                 : ""
@@ -402,7 +402,7 @@ export function ConversationPractice() {
                             }}
                           />
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex shrink-0 gap-2">
                           {conv.audioUrl &&
                             (index === currentIndex || !isPracticing) && (
                               <button
@@ -430,7 +430,7 @@ export function ConversationPractice() {
                         </div>
                       </div>
                       <div className="flex flex-col gap-1 text-sm">
-                        <div className="mt-1 opacity-60">
+                        <div className="mt-1 break-words opacity-60">
                           {conv.translation}
                         </div>
                       </div>
@@ -476,11 +476,11 @@ export function ConversationPractice() {
       </dialog>
 
       {conversations.length > 0 && !isNew && (
-        <div className="fixed bottom-0 left-0 right-0 flex justify-center bg-base-100 p-4 shadow-lg">
-          <div className="flex items-center gap-4">
-            {
-              <label className="label cursor-pointer gap-2">
-                <span className="label-text">練習</span>
+        <div className="fixed bottom-0 left-0 right-0 flex justify-center bg-base-100 p-2 shadow-lg sm:p-4">
+          <div className="flex w-full max-w-screen-lg flex-wrap items-center justify-center gap-2 px-2 sm:gap-4 sm:px-4">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+              <label className="label cursor-pointer gap-1 sm:gap-2">
+                <span className="label-text text-sm sm:text-base">練習</span>
                 <input
                   type="checkbox"
                   className="toggle toggle-primary toggle-sm"
@@ -488,10 +488,8 @@ export function ConversationPractice() {
                   onChange={() => setIsBlurMode(!isBlurMode)}
                 />
               </label>
-            }
-            {
-              <label className="label cursor-pointer gap-2">
-                <span className="label-text">假名</span>
+              <label className="label cursor-pointer gap-1 sm:gap-2">
+                <span className="label-text text-sm sm:text-base">假名</span>
                 <input
                   type="checkbox"
                   className="toggle toggle-primary toggle-sm"
@@ -499,10 +497,8 @@ export function ConversationPractice() {
                   onChange={() => setShowHiragana(!showHiragana)}
                 />
               </label>
-            }
-            {
-              <label className="label cursor-pointer gap-2">
-                <span className="label-text">慢速</span>
+              <label className="label cursor-pointer gap-1 sm:gap-2">
+                <span className="label-text text-sm sm:text-base">慢速</span>
                 <input
                   type="checkbox"
                   className="toggle toggle-primary toggle-sm"
@@ -510,63 +506,65 @@ export function ConversationPractice() {
                   onChange={() => setIsSlowPlayback(!isSlowPlayback)}
                 />
               </label>
-            }
+            </div>
 
-            {!isPracticing && (
-              <button
-                className="btn btn-secondary gap-2"
-                onClick={startPractice}
-              >
-                <PlayCircleIcon className="h-5 w-5" />
-                開始對話
-              </button>
-            )}
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+              {!isPracticing && (
+                <button
+                  className="btn btn-secondary gap-2"
+                  onClick={startPractice}
+                >
+                  <PlayCircleIcon className="h-5 w-5" />
+                  開始對話
+                </button>
+              )}
 
-            {isPracticing && (
-              <button
-                className="btn btn-accent gap-2"
-                onClick={handlePrevious}
-                disabled={isFirstLine}
-              >
-                <ArrowRightCircleIcon className="h-5 w-5 rotate-180" />
-              </button>
-            )}
-            {isPracticing && (
-              <button className="btn btn-accent gap-2" onClick={replayAudio}>
-                <ArrowUpCircleIcon className="h-5 w-5" />
-              </button>
-            )}
-            {isPracticing && !isLastLine && (
-              <button className="btn btn-accent gap-2" onClick={handleNext}>
-                <ArrowRightCircleIcon className="h-5 w-5" />
-              </button>
-            )}
-            {(!isPracticing || isLastLine) && (
-              <select
-                className="select select-bordered"
-                value={selectedRole}
-                onChange={(e) =>
-                  setSelectedRole(e.target.value as "A" | "B" | "All")
-                }
-              >
-                <option value="A">角色 A</option>
-                <option value="B">角色 B</option>
-                <option value="All">角色 All</option>
-              </select>
-            )}
-            {isPracticing && isLastLine && (
-              <button
-                className="btn btn-secondary gap-2"
-                onClick={startPractice}
-              >
-                <ArrowPathIcon className="h-5 w-5" />
-              </button>
-            )}
-            {isPracticing && (
-              <button className="btn btn-error gap-2" onClick={resetPractice}>
-                <StopIcon className="h-5 w-5" />
-              </button>
-            )}
+              {isPracticing && (
+                <button
+                  className="btn btn-accent gap-2"
+                  onClick={handlePrevious}
+                  disabled={isFirstLine}
+                >
+                  <ArrowRightCircleIcon className="h-5 w-5 rotate-180" />
+                </button>
+              )}
+              {isPracticing && (
+                <button className="btn btn-accent gap-2" onClick={replayAudio}>
+                  <ArrowUpCircleIcon className="h-5 w-5" />
+                </button>
+              )}
+              {isPracticing && !isLastLine && (
+                <button className="btn btn-accent gap-2" onClick={handleNext}>
+                  <ArrowRightCircleIcon className="h-5 w-5" />
+                </button>
+              )}
+              {(!isPracticing || isLastLine) && (
+                <select
+                  className="select select-bordered w-full sm:w-auto"
+                  value={selectedRole}
+                  onChange={(e) =>
+                    setSelectedRole(e.target.value as "A" | "B" | "All")
+                  }
+                >
+                  <option value="A">角色 A</option>
+                  <option value="B">角色 B</option>
+                  <option value="All">角色 All</option>
+                </select>
+              )}
+              {isPracticing && isLastLine && (
+                <button
+                  className="btn btn-secondary gap-2"
+                  onClick={startPractice}
+                >
+                  <ArrowPathIcon className="h-5 w-5" />
+                </button>
+              )}
+              {isPracticing && (
+                <button className="btn btn-error gap-2" onClick={resetPractice}>
+                  <StopIcon className="h-5 w-5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

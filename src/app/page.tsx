@@ -13,17 +13,20 @@ export default function HomePage() {
         />
         <div className="drawer-content">
           {/* Mobile toggle button */}
-          <label
-            htmlFor="conversation-drawer"
-            className="btn btn-ghost drawer-button fixed left-4 top-4 z-30 lg:hidden"
-          >
-            <Bars3Icon className="h-6 w-6" />
-          </label>
-
           <div className="mx-auto max-w-5xl px-4 py-8">
-            <div className="flex justify-center gap-4">
-              <LanguageIcon className="h-16 w-16 text-primary" />
-              <h1 className="mb-8 text-5xl font-bold sm:text-7xl">ConvoX</h1>
+            <div className="relative flex flex-col items-center">
+              <div className="absolute -left-4 top-2 lg:hidden">
+                <label
+                  htmlFor="conversation-drawer"
+                  className="btn btn-ghost drawer-button"
+                >
+                  <Bars3Icon className="h-6 w-6" />
+                </label>
+              </div>
+              <div className="flex justify-center gap-4">
+                <LanguageIcon className="h-16 w-16 text-primary" />
+                <h1 className="mb-8 text-5xl font-bold sm:text-7xl">ConvoX</h1>
+              </div>
             </div>
             <div className="mb-12 flex items-center justify-center gap-2">
               <p className="text-xl">

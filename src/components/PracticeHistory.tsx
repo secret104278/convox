@@ -69,6 +69,13 @@ export function PracticeHistory() {
     practiceId: string,
     conversationId: string,
   ) => {
+    // Close drawer on mobile
+    const drawerCheckbox = document.getElementById(
+      "conversation-drawer",
+    ) as HTMLInputElement;
+    if (drawerCheckbox) {
+      drawerCheckbox.checked = false;
+    }
     router.push(`/?practice=${practiceId}&conversation=${conversationId}`);
   };
 
