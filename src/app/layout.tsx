@@ -1,9 +1,14 @@
 import "~/styles/globals.css";
 
-import { GeistSans } from "geist/font/sans";
+import { M_PLUS_1p } from "next/font/google";
 import { type Metadata } from "next";
 
 import { TRPCReactProvider } from "~/trpc/react";
+
+const mPlus1p = M_PLUS_1p({
+  weight: "400",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
   title: "ConveX",
@@ -15,7 +20,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="zh-TW" className={`${GeistSans.variable}`}>
+    <html lang="zh-TW" className={`${mPlus1p.className}`}>
       <body>
         <TRPCReactProvider>{children}</TRPCReactProvider>
       </body>

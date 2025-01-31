@@ -7,8 +7,6 @@ import {
   SpeakerWaveIcon,
   ArrowRightCircleIcon,
   ArrowPathIcon,
-  EyeIcon,
-  EyeSlashIcon,
   StopIcon,
   ArrowUpCircleIcon,
 } from "@heroicons/react/24/solid";
@@ -393,40 +391,26 @@ export function ConversationPractice() {
         <div className="fixed bottom-0 left-0 right-0 flex justify-center bg-base-100 p-4 shadow-lg">
           <div className="flex items-center gap-4">
             {
-              <button
-                className={`btn gap-2 ${isBlurMode ? "btn-primary" : "btn-ghost"}`}
-                onClick={() => setIsBlurMode(!isBlurMode)}
-              >
-                {isBlurMode ? (
-                  <>
-                    <EyeSlashIcon className="h-4 w-4" />
-                    練習模式開啟
-                  </>
-                ) : (
-                  <>
-                    <EyeIcon className="h-4 w-4" />
-                    練習模式關閉
-                  </>
-                )}
-              </button>
+              <label className="label cursor-pointer gap-2">
+                <span className="label-text">練習模式</span>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary toggle-sm"
+                  checked={isBlurMode}
+                  onChange={() => setIsBlurMode(!isBlurMode)}
+                />
+              </label>
             }
             {
-              <button
-                className={`btn gap-2 ${showHiragana ? "btn-primary" : "btn-ghost"}`}
-                onClick={() => setShowHiragana(!showHiragana)}
-              >
-                {showHiragana ? (
-                  <>
-                    <EyeIcon className="h-4 w-4" />
-                    顯示假名
-                  </>
-                ) : (
-                  <>
-                    <EyeSlashIcon className="h-4 w-4" />
-                    隱藏假名
-                  </>
-                )}
-              </button>
+              <label className="label cursor-pointer gap-2">
+                <span className="label-text">顯示假名</span>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary toggle-sm"
+                  checked={showHiragana}
+                  onChange={() => setShowHiragana(!showHiragana)}
+                />
+              </label>
             }
 
             {!isPracticing && (
