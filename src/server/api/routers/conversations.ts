@@ -9,7 +9,11 @@ import { StructuredOutputParser } from "langchain/output_parsers";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { env } from "~/env";
 import { db } from "~/server/db";
-import { llmConversationSchema, difficultySchema } from "~/types/db";
+import {
+  llmConversationSchema,
+  difficultySchema,
+  voiceModeSchema,
+} from "~/types";
 
 const outputParser = StructuredOutputParser.fromZodSchema(
   llmConversationSchema,
@@ -24,13 +28,22 @@ const openai = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
 });
 
-async function generateGoogleSpeech(text: string): Promise<Buffer> {
+async function generateGoogleSpeech(
+  text: string,
+  role: "A" | "B",
+  voiceMode: z.infer<typeof voiceModeSchema> = "different",
+): Promise<Buffer> {
   const request: protos.google.cloud.texttospeech.v1.ISynthesizeSpeechRequest =
     {
       input: { text },
       voice: {
         languageCode: "ja-JP",
-        name: "ja-JP-Neural2-B",
+        name:
+          voiceMode === "different"
+            ? role === "A"
+              ? "ja-JP-Neural2-D"
+              : "ja-JP-Neural2-B"
+            : "ja-JP-Neural2-B",
       },
       audioConfig: { audioEncoding: "MP3" as const },
     };
@@ -56,10 +69,11 @@ export const conversationsRouter = createTRPCRouter({
         prompt: z.string(),
         practiceId: z.string().optional(),
         difficulty: difficultySchema,
+        voiceMode: voiceModeSchema.default("different"),
       }),
     )
     .mutation(async ({ input }) => {
-      const { prompt, practiceId, difficulty } = input;
+      const { prompt, practiceId, difficulty, voiceMode } = input;
 
       // Get existing conversation titles if practiceId exists
       const existingTitles: string[] = ["rain", "picnic", "umbrella"];
@@ -121,7 +135,7 @@ export const conversationsRouter = createTRPCRouter({
 Create a natural and lively daily conversation with 8-10 exchanges. For each sentence, please provide:
 1. Original Japanese text (use kanji without including furigana)
 2. Hiragana pronunciation
-3. Traditional Chinese translation, please do not use Simplified Chinese
+3. Traditional Chinese translation. Please use Traditional Chinese, Simplified Chinese is prohibited
 
 Also, generate a short title that summarizes the theme or content of the conversation.
 
@@ -143,9 +157,10 @@ Requirements:
 
       // Generate audio for each line using the selected provider
       const conversationsWithAudio = await Promise.all(
-        sentences.map(async (conv) => {
+        sentences.map(async (conv, index) => {
+          const role = index % 2 === 0 ? "A" : "B";
           const audioContent = await (env.TTS_PROVIDER === "google"
-            ? generateGoogleSpeech(conv.hiragana)
+            ? generateGoogleSpeech(conv.hiragana, role, voiceMode)
             : generateOpenAISpeech(conv.hiragana));
 
           if (!audioContent) {

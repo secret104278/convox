@@ -11,7 +11,7 @@ import {
   ArrowUpCircleIcon,
 } from "@heroicons/react/24/solid";
 import { api } from "~/trpc/react";
-import { difficultySchema } from "~/types/db";
+import { difficultySchema, type voiceModeSchema } from "~/types";
 import { type z } from "zod";
 
 // Utility function to match Japanese text with hiragana readings
@@ -124,8 +124,11 @@ export function ConversationPractice() {
   const [isPracticing, setIsPracticing] = useState(false);
   const [isBlurMode, setIsBlurMode] = useState(false);
   const [showHiragana, setShowHiragana] = useState(true);
+  const [isSlowPlayback, setIsSlowPlayback] = useState(false);
   const [difficulty, setDifficulty] =
     useState<z.infer<typeof difficultySchema>>("JLPT N5");
+  const [voiceMode, setVoiceMode] =
+    useState<z.infer<typeof voiceModeSchema>>("different");
 
   // Add ref for the current conversation card
   const currentCardRef = useRef<HTMLDivElement>(null);
@@ -145,6 +148,21 @@ export function ConversationPractice() {
     }
   }, [isNew]);
 
+  const playAudio = useCallback(
+    (audioUrl: string) => {
+      currentAudioController.current?.abort();
+      currentAudioController.current = new AbortController();
+
+      const audio = new Audio(audioUrl);
+      audio.playbackRate = isSlowPlayback ? 0.75 : 1.0;
+      audio.play().catch(console.error);
+      currentAudioController.current.signal.onabort = () => {
+        audio.pause();
+      };
+    },
+    [isSlowPlayback],
+  );
+
   const handleNext = useCallback(() => {
     if (currentIndex < conversations.length - 1) {
       const nextIndex = currentIndex + 1;
@@ -159,7 +177,7 @@ export function ConversationPractice() {
         playAudio(nextConversation.audioUrl);
       }
     }
-  }, [conversations, currentIndex, selectedRole]);
+  }, [conversations, currentIndex, playAudio, selectedRole]);
 
   const handlePrevious = useCallback(() => {
     if (currentIndex > 0) {
@@ -175,14 +193,14 @@ export function ConversationPractice() {
         playAudio(prevConversation.audioUrl);
       }
     }
-  }, [conversations, currentIndex, selectedRole]);
+  }, [conversations, currentIndex, playAudio, selectedRole]);
 
   const replayAudio = useCallback(() => {
     const currentConv = conversations[currentIndex];
     if (currentConv?.audioUrl) {
       playAudio(currentConv.audioUrl);
     }
-  }, [conversations, currentIndex]);
+  }, [conversations, currentIndex, playAudio]);
 
   // Add effect for scrolling
   useEffect(() => {
@@ -236,17 +254,6 @@ export function ConversationPractice() {
     }
   };
 
-  const playAudio = (audioUrl: string) => {
-    currentAudioController.current?.abort();
-    currentAudioController.current = new AbortController();
-
-    const audio = new Audio(audioUrl);
-    audio.play().catch(console.error);
-    currentAudioController.current.signal.onabort = () => {
-      audio.pause();
-    };
-  };
-
   const resetPractice = () => {
     currentAudioController.current?.abort();
     setIsPracticing(false);
@@ -287,10 +294,27 @@ export function ConversationPractice() {
                     </option>
                   ))}
                 </select>
+                <select
+                  className="select select-bordered"
+                  value={voiceMode}
+                  onChange={(e) =>
+                    setVoiceMode(
+                      e.target.value as z.infer<typeof voiceModeSchema>,
+                    )
+                  }
+                >
+                  <option value="different">不同聲音</option>
+                  <option value="same">相同聲音</option>
+                </select>
                 <button
                   className="btn btn-primary gap-2"
                   onClick={() =>
-                    generateMutation.mutate({ prompt, practiceId, difficulty })
+                    generateMutation.mutate({
+                      prompt,
+                      practiceId,
+                      difficulty,
+                      voiceMode,
+                    })
                   }
                   disabled={generateMutation.isPending}
                 >
@@ -392,7 +416,7 @@ export function ConversationPractice() {
           <div className="flex items-center gap-4">
             {
               <label className="label cursor-pointer gap-2">
-                <span className="label-text">練習模式</span>
+                <span className="label-text">練習</span>
                 <input
                   type="checkbox"
                   className="toggle toggle-primary toggle-sm"
@@ -403,12 +427,23 @@ export function ConversationPractice() {
             }
             {
               <label className="label cursor-pointer gap-2">
-                <span className="label-text">顯示假名</span>
+                <span className="label-text">假名</span>
                 <input
                   type="checkbox"
                   className="toggle toggle-primary toggle-sm"
                   checked={showHiragana}
                   onChange={() => setShowHiragana(!showHiragana)}
+                />
+              </label>
+            }
+            {
+              <label className="label cursor-pointer gap-2">
+                <span className="label-text">慢速</span>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary toggle-sm"
+                  checked={isSlowPlayback}
+                  onChange={() => setIsSlowPlayback(!isSlowPlayback)}
                 />
               </label>
             }
@@ -430,19 +465,16 @@ export function ConversationPractice() {
                 disabled={isFirstLine}
               >
                 <ArrowRightCircleIcon className="h-5 w-5 rotate-180" />
-                上一句
               </button>
             )}
             {isPracticing && (
               <button className="btn btn-accent gap-2" onClick={replayAudio}>
                 <ArrowUpCircleIcon className="h-5 w-5" />
-                重聽
               </button>
             )}
             {isPracticing && !isLastLine && (
               <button className="btn btn-accent gap-2" onClick={handleNext}>
                 <ArrowRightCircleIcon className="h-5 w-5" />
-                下一句
               </button>
             )}
             {(!isPracticing || isLastLine) && (
@@ -464,13 +496,11 @@ export function ConversationPractice() {
                 onClick={startPractice}
               >
                 <ArrowPathIcon className="h-5 w-5" />
-                重新練習
               </button>
             )}
             {isPracticing && (
               <button className="btn btn-error gap-2" onClick={resetPractice}>
                 <StopIcon className="h-5 w-5" />
-                停止練習
               </button>
             )}
           </div>

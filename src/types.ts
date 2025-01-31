@@ -21,6 +21,8 @@ export const difficultySchema = z.enum([
   "JLPT N1",
 ]);
 
+export const voiceModeSchema = z.enum(["different", "same"]);
+
 type LLMConversation = z.infer<typeof llmConversationSchema>;
 
 type ConversationSentence = LLMConversation["sentences"][number] & {
