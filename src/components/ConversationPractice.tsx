@@ -18,11 +18,12 @@ export function ConversationPractice() {
   const isNew = searchParams.get("new") === "true";
 
   const utils = api.useUtils();
-  const { data: currentPractice } = api.conversations.getPractice.useQuery(
-    { id: practiceId! },
-    { enabled: !!practiceId },
-  );
-  const { data: currentConversation } =
+  const { data: currentPractice, isLoading: isPracticeLoading } =
+    api.conversations.getPractice.useQuery(
+      { id: practiceId! },
+      { enabled: !!practiceId },
+    );
+  const { data: currentConversation, isLoading: isConversationLoading } =
     api.conversations.getConversation.useQuery(
       { id: conversationId! },
       { enabled: !!conversationId },
@@ -115,45 +116,21 @@ export function ConversationPractice() {
     <div className="relative min-h-[50vh]">
       <div className="card bg-base-200 shadow-xl">
         <div className="card-body">
-          <div className="form-control">
-            <textarea
-              className="textarea textarea-bordered h-32"
-              placeholder="輸入場景（例如：生成一段關於在餐廳點餐的對話）"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              disabled={isPracticing}
-            />
-            <div className="mt-4 flex gap-4">
-              {!conversations.length && (
-                <button
-                  className={`btn btn-primary gap-2 ${generateMutation.isPending ? "loading" : ""}`}
-                  onClick={() =>
-                    generateMutation.mutate({ prompt, practiceId })
-                  }
-                  disabled={generateMutation.isPending}
-                >
-                  <SpeakerWaveIcon className="h-5 w-5" />
-                  {generateMutation.isPending ? "生成中..." : "生成對話"}
-                </button>
-              )}
-              {conversations.length > 0 && !isPracticing && (
-                <>
-                  <select
-                    className="select select-bordered"
-                    value={selectedRole}
-                    onChange={(e) =>
-                      setSelectedRole(e.target.value as "A" | "B")
-                    }
-                  >
-                    <option value="A">角色 A</option>
-                    <option value="B">角色 B</option>
-                  </select>
-                  <button
-                    className="btn btn-secondary gap-2"
-                    onClick={startPractice}
-                  >
-                    開始練習
-                  </button>
+          {isPracticeLoading || isConversationLoading ? (
+            <div className="flex h-32 items-center justify-center">
+              <span className="loading loading-spinner loading-lg"></span>
+            </div>
+          ) : (
+            <div className="form-control">
+              <textarea
+                className="textarea textarea-bordered h-32"
+                placeholder="輸入場景（例如：生成一段關於在餐廳點餐的對話）"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                disabled={isPracticing}
+              />
+              <div className="mt-4 flex gap-4">
+                {!conversations.length && (
                   <button
                     className="btn btn-primary gap-2"
                     onClick={() =>
@@ -161,13 +138,53 @@ export function ConversationPractice() {
                     }
                     disabled={generateMutation.isPending}
                   >
-                    <ArrowPathIcon className="h-5 w-5" />
-                    重新生成
+                    {generateMutation.isPending ? (
+                      <span className="loading loading-spinner"></span>
+                    ) : (
+                      <SpeakerWaveIcon className="h-5 w-5" />
+                    )}
+                    {generateMutation.isPending ? "生成中..." : "生成對話"}
                   </button>
-                </>
-              )}
+                )}
+                {conversations.length > 0 && !isPracticing && (
+                  <>
+                    <select
+                      className="select select-bordered"
+                      value={selectedRole}
+                      onChange={(e) =>
+                        setSelectedRole(e.target.value as "A" | "B")
+                      }
+                    >
+                      <option value="A">角色 A</option>
+                      <option value="B">角色 B</option>
+                    </select>
+                    <button
+                      className="btn btn-secondary gap-2"
+                      onClick={startPractice}
+                    >
+                      開始練習
+                    </button>
+                    <button
+                      className="btn btn-primary gap-2"
+                      onClick={() =>
+                        generateMutation.mutate({ prompt, practiceId })
+                      }
+                      disabled={generateMutation.isPending}
+                    >
+                      {generateMutation.isPending ? (
+                        <span className="loading loading-spinner"></span>
+                      ) : (
+                        <ArrowPathIcon className="h-5 w-5" />
+                      )}
+                      {generateMutation.isPending
+                        ? "重新生成中..."
+                        : "重新生成"}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="divider"></div>
 

@@ -245,4 +245,30 @@ export const conversationsRouter = createTRPCRouter({
         where: { id: input.id },
       });
     }),
+
+  updatePracticeTitle: publicProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      return db.practice.update({
+        where: { id: input.id },
+        data: { title: input.title },
+      });
+    }),
+
+  deleteConversation: publicProcedure
+    .input(
+      z.object({
+        id: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      await db.conversation.delete({
+        where: { id: input.id },
+      });
+    }),
 });
