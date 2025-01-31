@@ -19,6 +19,8 @@ const outputParser = StructuredOutputParser.fromZodSchema(
   llmConversationSchema,
 );
 
+const familiaritySchema = z.enum(["stranger", "casual", "close"]);
+
 // Initialize TTS clients
 const googleTts = new TextToSpeechClient({
   credentials: {
@@ -73,10 +75,11 @@ export const conversationsRouter = createTRPCRouter({
         practiceId: z.string().optional(),
         difficulty: difficultySchema,
         voiceMode: voiceModeSchema.default("different"),
+        familiarity: familiaritySchema.default("casual"),
       }),
     )
     .mutation(async ({ input }) => {
-      const { prompt, practiceId, difficulty, voiceMode } = input;
+      const { prompt, practiceId, difficulty, voiceMode, familiarity } = input;
 
       // Get existing conversation titles if practiceId exists
       const existingTitles: string[] = ["rain", "picnic", "umbrella"];
@@ -109,6 +112,22 @@ export const conversationsRouter = createTRPCRouter({
             baseUrl: env.OLLAMA_BASE_URL,
             model: env.OLLAMA_MODEL,
             temperature: 0.7,
+          });
+          break;
+        case "nvidia":
+          model = new ChatOpenAI({
+            apiKey:
+              "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",
+            configuration: {
+              baseURL: "https://integrate.api.nvidia.com/v1",
+            },
+            model: "deepseek-ai/deepseek-r1",
+            temperature: 1,
+            topP: 1,
+            presencePenalty: 0.6,
+            frequencyPenalty: 0,
+            maxTokens: 4096,
+            cache: false,
           });
           break;
         default: // openai
@@ -146,12 +165,19 @@ Also, generate a short title that summarizes the theme or content of the convers
 Requirements:
 - Generate a conversation at ${difficulty} level
 - Avoid topics like ${existingTitles.map((title) => `"${title}"`).join(", ")}
-- Make the conversation lively and include appropriate humor
-- Use natural spoken language
-- Ensure the content reflects real-life situations
-- You can include some Japanese cultural elements
-- Avoid overly formal or stiff expressions
-- Make the conversation sound like a real exchange between friends`,
+- ${
+            voiceMode === "different"
+              ? "The first person is male, the second person is female"
+              : "Both are female"
+          }, both are in their 20s
+- Make the conversation between ${
+            familiarity === "stranger"
+              ? "people who have never met before, maintain formal politeness"
+              : familiarity === "casual"
+                ? "people who have just met recently, keep it casual but maintain appropriate politeness"
+                : "close friends who are very familiar with each other, use casual and friendly language"
+          }
+- Ensure the content reflects real-life situations, and include some authentic Japanese cultural elements.`,
         ),
       ]);
 
@@ -205,6 +231,9 @@ Requirements:
           title,
           content: conversationsWithAudio,
           practiceId: practice.id,
+          difficulty,
+          voiceMode,
+          familiarity,
         },
       });
 

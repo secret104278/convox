@@ -1,9 +1,9 @@
 import { PlayCircleIcon, AcademicCapIcon } from "@heroicons/react/24/solid";
-import { type Conversation } from "~/types";
+import { type ConversationSentence } from "~/types";
 import { matchTextWithReadings } from "~/utils/textProcessing";
 
-interface ConversationCardProps {
-  conversation: Conversation;
+interface SentenceCardProps {
+  sentence: ConversationSentence;
   isActive: boolean;
   isPracticing: boolean;
   selectedRole: "A" | "B" | "All";
@@ -14,8 +14,8 @@ interface ConversationCardProps {
   cardRef?: React.RefObject<HTMLDivElement>;
 }
 
-export function ConversationCard({
-  conversation,
+export function SentenceCard({
+  sentence,
   isActive,
   isPracticing,
   selectedRole,
@@ -24,13 +24,13 @@ export function ConversationCard({
   onPlayAudio,
   onShowGrammar,
   cardRef,
-}: ConversationCardProps) {
+}: SentenceCardProps) {
   return (
     <div
       ref={cardRef}
       className={`group card min-w-0 ${
         isActive
-          ? conversation.role === selectedRole
+          ? sentence.role === selectedRole
             ? "bg-accent bg-opacity-10 ring-2 ring-accent"
             : "bg-primary bg-opacity-10 ring-2 ring-primary"
           : "bg-base-300"
@@ -40,12 +40,10 @@ export function ConversationCard({
         <div className="flex flex-wrap items-center gap-4">
           <div
             className={`badge shrink-0 ${
-              conversation.role === selectedRole
-                ? "badge-accent"
-                : "badge-neutral"
+              sentence.role === selectedRole ? "badge-accent" : "badge-neutral"
             }`}
           >
-            {conversation.role}
+            {sentence.role}
           </div>
           <div className="min-w-0 flex-grow">
             <div
@@ -57,29 +55,29 @@ export function ConversationCard({
               dangerouslySetInnerHTML={{
                 __html: showHiragana
                   ? matchTextWithReadings(
-                      conversation.text ?? "",
-                      conversation.hiragana ?? "",
+                      sentence.text ?? "",
+                      sentence.hiragana ?? "",
                     )
-                  : (conversation.text ?? ""),
+                  : (sentence.text ?? ""),
               }}
             />
           </div>
           <div className="flex shrink-0 gap-2">
-            {conversation.audioUrl && (isActive || !isPracticing) && (
+            {sentence.audioUrl && (isActive || !isPracticing) && (
               <button
                 className="btn btn-circle btn-ghost btn-sm"
                 onClick={() =>
-                  conversation.audioUrl && onPlayAudio(conversation.audioUrl)
+                  sentence.audioUrl && onPlayAudio(sentence.audioUrl)
                 }
                 aria-label="Play audio"
               >
                 <PlayCircleIcon className="h-5 w-5" />
               </button>
             )}
-            {conversation.grammarExplanation && (
+            {sentence.grammarExplanation && (
               <button
                 className="btn btn-circle btn-ghost btn-sm"
-                onClick={() => onShowGrammar(conversation.grammarExplanation!)}
+                onClick={() => onShowGrammar(sentence.grammarExplanation!)}
               >
                 <AcademicCapIcon className="h-5 w-5" />
               </button>
@@ -88,7 +86,7 @@ export function ConversationCard({
         </div>
         <div className="flex flex-col gap-1 text-sm">
           <div className="mt-1 break-words opacity-60">
-            {conversation.translation}
+            {sentence.translation}
           </div>
         </div>
       </div>

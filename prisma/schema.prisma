@@ -30,6 +30,10 @@ model Conversation {
   /// [ConversationContentType]
   content Json
 
+  difficulty  String?
+  voiceMode   String?
+  familiarity String?
+
   createdAt  DateTime @default(now())
   practiceId String
   practice   Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)

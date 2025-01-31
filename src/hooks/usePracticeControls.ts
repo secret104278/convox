@@ -1,8 +1,8 @@
 import { useCallback, useEffect } from "react";
-import { type Conversation } from "~/types";
+import { type ConversationSentence } from "~/types";
 
 interface PracticeControlsProps {
-  conversations: Conversation[];
+  sentences: ConversationSentence[];
   currentIndex: number;
   isPracticing: boolean;
   selectedRole: "A" | "B" | "All";
@@ -13,7 +13,7 @@ interface PracticeControlsProps {
 }
 
 export function usePracticeControls({
-  conversations,
+  sentences,
   currentIndex,
   isPracticing,
   selectedRole,
@@ -23,59 +23,59 @@ export function usePracticeControls({
   onPracticeStateChange,
 }: PracticeControlsProps) {
   const handleNext = useCallback(() => {
-    if (currentIndex < conversations.length - 1) {
+    if (currentIndex < sentences.length - 1) {
       const nextIndex = currentIndex + 1;
       onIndexChange(nextIndex);
       // Automatically play audio if it's not the user's turn or if in All mode
-      const nextConversation = conversations[nextIndex];
+      const nextSentences = sentences[nextIndex];
       if (
-        nextConversation &&
-        (selectedRole === "All" || nextConversation.role !== selectedRole) &&
-        nextConversation.audioUrl
+        nextSentences &&
+        (selectedRole === "All" || nextSentences.role !== selectedRole) &&
+        nextSentences.audioUrl
       ) {
-        playAudio(nextConversation.audioUrl);
+        playAudio(nextSentences.audioUrl);
       }
     }
-  }, [conversations, currentIndex, onIndexChange, playAudio, selectedRole]);
+  }, [sentences, currentIndex, onIndexChange, playAudio, selectedRole]);
 
   const handlePrevious = useCallback(() => {
     if (currentIndex > 0) {
       const prevIndex = currentIndex - 1;
       onIndexChange(prevIndex);
       // Automatically play audio if it's not the user's turn or if in All mode
-      const prevConversation = conversations[prevIndex];
+      const prevSentences = sentences[prevIndex];
       if (
-        prevConversation &&
-        (selectedRole === "All" || prevConversation.role !== selectedRole) &&
-        prevConversation.audioUrl
+        prevSentences &&
+        (selectedRole === "All" || prevSentences.role !== selectedRole) &&
+        prevSentences.audioUrl
       ) {
-        playAudio(prevConversation.audioUrl);
+        playAudio(prevSentences.audioUrl);
       }
     }
-  }, [conversations, currentIndex, onIndexChange, playAudio, selectedRole]);
+  }, [sentences, currentIndex, onIndexChange, playAudio, selectedRole]);
 
   const replayAudio = useCallback(() => {
-    const currentConv = conversations[currentIndex];
+    const currentConv = sentences[currentIndex];
     if (currentConv?.audioUrl) {
       playAudio(currentConv.audioUrl);
     }
-  }, [conversations, currentIndex, playAudio]);
+  }, [sentences, currentIndex, playAudio]);
 
   const startPractice = useCallback(() => {
     stopAudio();
     onPracticeStateChange(true);
     onIndexChange(0);
     // Play the first sentence if it's not the user's role or if in All mode
-    const firstConversation = conversations[0];
+    const firstSentences = sentences[0];
     if (
-      firstConversation &&
-      (selectedRole === "All" || firstConversation.role !== selectedRole) &&
-      firstConversation.audioUrl
+      firstSentences &&
+      (selectedRole === "All" || firstSentences.role !== selectedRole) &&
+      firstSentences.audioUrl
     ) {
-      playAudio(firstConversation.audioUrl);
+      playAudio(firstSentences.audioUrl);
     }
   }, [
-    conversations,
+    sentences,
     playAudio,
     selectedRole,
     stopAudio,
@@ -126,7 +126,7 @@ export function usePracticeControls({
     replayAudio,
     startPractice,
     resetPractice,
-    isLastLine: currentIndex === conversations.length - 1,
+    isLastLine: currentIndex === sentences.length - 1,
     isFirstLine: currentIndex === 0,
   };
 }

@@ -23,21 +23,13 @@ export const difficultySchema = z.enum([
 
 export const voiceModeSchema = z.enum(["different", "same"]);
 
-export interface Conversation {
-  id: string;
-  role: "A" | "B";
-  text?: string | null;
-  hiragana?: string | null;
-  translation?: string | null;
-  audioUrl?: string | null;
-  grammarExplanation?: string | null;
-  createdAt: Date;
-  title?: string | null;
-}
+export const familiaritySchema = z.enum(["stranger", "casual", "close"]);
 
 type LLMConversation = z.infer<typeof llmConversationSchema>;
 
-type ConversationSentence = LLMConversation["sentences"][number] & {
+export type ConversationSentence = Partial<
+  LLMConversation["sentences"][number]
+> & {
   audioUrl?: string;
 };
 

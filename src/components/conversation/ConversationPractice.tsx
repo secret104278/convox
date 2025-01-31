@@ -2,12 +2,16 @@
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import { SpeakerWaveIcon, ArrowPathIcon } from "@heroicons/react/24/solid";
-import { difficultySchema, type voiceModeSchema } from "~/types";
+import {
+  difficultySchema,
+  type voiceModeSchema,
+  type familiaritySchema,
+} from "~/types";
 import { type z } from "zod";
 import { useConversationData } from "~/hooks/useConversationData";
 import { useAudioPlayback } from "~/hooks/useAudioPlayback";
 import { usePracticeControls } from "~/hooks/usePracticeControls";
-import { ConversationCard } from "./ConversationCard";
+import { SentenceCard } from "./SentenceCard";
 import { GrammarModal } from "./GrammarModal";
 import { PracticeControls } from "./PracticeControls";
 import { PracticeSettings } from "./PracticeSettings";
@@ -22,13 +26,8 @@ export function ConversationPractice() {
     isPending,
   } = useConversationData();
 
-  const conversations = useMemo(
-    () =>
-      currentConversation?.content.map((conv, index) => ({
-        ...conv,
-        id: `${currentConversation.id}-${index}`,
-        createdAt: currentConversation.createdAt,
-      })) ?? [],
+  const sentences = useMemo(
+    () => currentConversation?.content ?? [],
     [currentConversation],
   );
 
@@ -43,6 +42,8 @@ export function ConversationPractice() {
     useState<z.infer<typeof difficultySchema>>("JLPT N5");
   const [voiceMode, setVoiceMode] =
     useState<z.infer<typeof voiceModeSchema>>("different");
+  const [familiarity, setFamiliarity] =
+    useState<z.infer<typeof familiaritySchema>>("casual");
   const [selectedGrammarExplanation, setSelectedGrammarExplanation] = useState<
     string | null
   >(null);
@@ -61,7 +62,7 @@ export function ConversationPractice() {
     isLastLine,
     isFirstLine,
   } = usePracticeControls({
-    conversations,
+    sentences,
     currentIndex,
     isPracticing,
     selectedRole,
@@ -130,6 +131,19 @@ export function ConversationPractice() {
                   <option value="different">不同聲音</option>
                   <option value="same">相同聲音</option>
                 </select>
+                <select
+                  className="select select-bordered w-full sm:w-auto"
+                  value={familiarity}
+                  onChange={(e) =>
+                    setFamiliarity(
+                      e.target.value as z.infer<typeof familiaritySchema>,
+                    )
+                  }
+                >
+                  <option value="stranger">初次見面</option>
+                  <option value="casual">最近認識</option>
+                  <option value="close">好朋友</option>
+                </select>
                 <button
                   className="btn btn-primary w-full gap-2 sm:w-auto"
                   onClick={() =>
@@ -137,6 +151,7 @@ export function ConversationPractice() {
                       prompt,
                       difficulty,
                       voiceMode,
+                      familiarity,
                     })
                   }
                   disabled={isPending}
@@ -161,14 +176,37 @@ export function ConversationPractice() {
           {currentConversation && (
             <>
               <div className="divider"></div>
-              <h2 className="mb-4 text-xl font-bold">
-                {currentConversation.title}
-              </h2>
-              <div className="space-y-4 pb-32 sm:pb-24">
-                {conversations.map((conv, index) => (
-                  <ConversationCard
+              <div className="mb-4 flex items-center gap-2">
+                <h2 className="text-xl font-bold">
+                  {currentConversation.title}
+                </h2>
+                {currentConversation.difficulty && (
+                  <div className="badge badge-info badge-outline shrink-0">
+                    {currentConversation.difficulty}
+                  </div>
+                )}
+                {currentConversation.voiceMode && (
+                  <div className="badge badge-warning badge-outline shrink-0">
+                    {currentConversation.voiceMode === "different"
+                      ? "不同聲音"
+                      : "相同聲音"}
+                  </div>
+                )}
+                {currentConversation.familiarity && (
+                  <div className="badge badge-success badge-outline shrink-0">
+                    {currentConversation.familiarity === "stranger"
+                      ? "初次見面"
+                      : currentConversation.familiarity === "casual"
+                        ? "最近認識"
+                        : "好朋友"}
+                  </div>
+                )}
+              </div>
+              <div className="space-y-4 pb-48 sm:pb-24">
+                {sentences.map((sentence, index) => (
+                  <SentenceCard
                     key={index}
-                    conversation={conv}
+                    sentence={sentence}
                     isActive={index === currentIndex}
                     isPracticing={isPracticing}
                     selectedRole={selectedRole}
@@ -192,7 +230,7 @@ export function ConversationPractice() {
         onClose={() => setSelectedGrammarExplanation(null)}
       />
 
-      {conversations.length > 0 && !isNew && (
+      {sentences.length > 0 && !isNew && (
         <div className="fixed bottom-0 left-0 right-0 flex justify-center bg-base-100 p-2 shadow-lg sm:p-4 lg:left-80">
           <div className="flex w-full max-w-screen-lg flex-wrap items-center justify-center gap-2 px-2 sm:gap-4 sm:px-4">
             <PracticeSettings

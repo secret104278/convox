@@ -14,7 +14,9 @@ export const env = createEnv({
     OPENAI_API_KEY: z.string(),
     OPENAI_MODEL: z.string().default("gpt-3.5-turbo"),
     OLLAMA_BASE_URL: z.string().optional(),
-    LLM_PROVIDER: z.enum(["openai", "deepseek", "ollama"]).default("openai"),
+    LLM_PROVIDER: z
+      .enum(["openai", "deepseek", "ollama", "nvidia"])
+      .default("openai"),
     OLLAMA_MODEL: z.string().default("llama3.2:latest"),
     TTS_PROVIDER: z.enum(["google", "openai"]).default("openai"),
   },

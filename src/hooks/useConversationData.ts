@@ -1,6 +1,10 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "~/trpc/react";
-import { type difficultySchema, type voiceModeSchema } from "~/types";
+import {
+  type difficultySchema,
+  type voiceModeSchema,
+  type familiaritySchema,
+} from "~/types";
 import { type z } from "zod";
 
 export function useConversationData() {
@@ -47,6 +51,7 @@ export function useConversationData() {
     prompt: string;
     difficulty: z.infer<typeof difficultySchema>;
     voiceMode: z.infer<typeof voiceModeSchema>;
+    familiarity: z.infer<typeof familiaritySchema>;
   }) => {
     return generateMutation.mutateAsync({
       ...params,
