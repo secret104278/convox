@@ -209,9 +209,11 @@ Requirements:
       // Create or get practice
       let practice;
       if (practiceId) {
-        practice = await db.practice.findUnique({
+        practice = await db.practice.update({
           where: { id: practiceId },
-          include: { conversations: true },
+          data: {
+            prompt,
+          },
         });
         if (!practice) {
           throw new Error("Practice not found");
