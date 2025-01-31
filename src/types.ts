@@ -15,7 +15,6 @@ export const llmConversationSchema = z.object({
 
 export const difficultySchema = z.enum([
   "JLPT N5",
-  "JLPT N5-N4",
   "JLPT N4",
   "JLPT N3",
   "JLPT N2",
@@ -23,6 +22,18 @@ export const difficultySchema = z.enum([
 ]);
 
 export const voiceModeSchema = z.enum(["different", "same"]);
+
+export interface Conversation {
+  id: string;
+  role: "A" | "B";
+  text?: string | null;
+  hiragana?: string | null;
+  translation?: string | null;
+  audioUrl?: string | null;
+  grammarExplanation?: string | null;
+  createdAt: Date;
+  title?: string | null;
+}
 
 type LLMConversation = z.infer<typeof llmConversationSchema>;
 

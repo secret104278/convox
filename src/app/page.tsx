@@ -1,4 +1,4 @@
-import { ConversationPractice } from "~/components/ConversationPractice";
+import { ConversationPractice } from "~/components/conversation/ConversationPractice";
 import { PracticeHistory } from "~/components/PracticeHistory";
 import { LanguageIcon, Bars3Icon } from "@heroicons/react/24/solid";
 
