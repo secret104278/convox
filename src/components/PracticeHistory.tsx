@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { api } from "~/trpc/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import clsx from "clsx";
 
 export function PracticeHistory() {
   const { data: practices, isLoading: isPracticesLoading } =
@@ -210,7 +211,10 @@ export function PracticeHistory() {
                           </li>
                           <li>
                             <button
-                              className={`text-error ${deletePracticeMutation.isPending ? "loading" : ""}`}
+                              className={clsx(
+                                "text-error",
+                                deletePracticeMutation.isPending && "loading",
+                              )}
                               onClick={(e) =>
                                 handleDeletePractice(e, practice.id)
                               }

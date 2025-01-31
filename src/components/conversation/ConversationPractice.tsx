@@ -205,7 +205,6 @@ export function ConversationPractice() {
                     key={index}
                     sentence={sentence}
                     isActive={index === currentIndex}
-                    isPracticing={isPracticing}
                     selectedRole={selectedRole}
                     isBlurMode={isBlurMode}
                     showHiragana={showHiragana}

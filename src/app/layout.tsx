@@ -5,6 +5,7 @@ import { type Metadata } from "next";
 
 import { TRPCReactProvider } from "~/trpc/react";
 import { Suspense } from "react";
+import clsx from "clsx";
 
 const mPlus1p = M_PLUS_1p({
   weight: "400",
@@ -21,7 +22,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="zh-TW" className={`${mPlus1p.className}`}>
+    <html lang="zh-TW" className={clsx(mPlus1p.className)}>
       <body>
         <TRPCReactProvider>
           <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>

@@ -1,3 +1,4 @@
+import clsx from "clsx";
 import { PlayCircleIcon, AcademicCapIcon } from "@heroicons/react/24/solid";
 import { type ConversationSentence } from "~/types";
 import { matchTextWithReadings } from "~/utils/textProcessing";
@@ -5,7 +6,6 @@ import { matchTextWithReadings } from "~/utils/textProcessing";
 interface SentenceCardProps {
   sentence: ConversationSentence;
   isActive: boolean;
-  isPracticing: boolean;
   selectedRole: "A" | "B" | "All";
   isBlurMode: boolean;
   showHiragana: boolean;
@@ -17,7 +17,6 @@ interface SentenceCardProps {
 export function SentenceCard({
   sentence,
   isActive,
-  isPracticing,
   selectedRole,
   isBlurMode,
   showHiragana,
@@ -28,50 +27,32 @@ export function SentenceCard({
   return (
     <div
       ref={cardRef}
-      className={`group card min-w-0 ${
+      className={clsx(
+        "group card min-w-0",
         isActive
           ? sentence.role === selectedRole
             ? "bg-accent bg-opacity-10 ring-2 ring-accent"
             : "bg-primary bg-opacity-10 ring-2 ring-primary"
-          : "bg-base-300"
-      }`}
+          : "bg-base-300",
+      )}
     >
       <div className="card-body gap-2 px-5 py-3">
         <div className="flex items-center gap-4">
-          <div
-            className={`badge shrink-0 ${
-              sentence.role === selectedRole ? "badge-accent" : "badge-neutral"
-            }`}
-          >
-            {sentence.role}
-          </div>
-          <div className="flex flex-grow flex-col gap-1">
+          <div className="flex shrink-0 flex-col items-center">
             <div
-              className={`group/text break-words font-bold ${
-                isBlurMode
-                  ? "blur-sm transition-all duration-200 hover:blur-none"
-                  : ""
-              }`}
-              dangerouslySetInnerHTML={{
-                __html: showHiragana
-                  ? matchTextWithReadings(
-                      sentence.text ?? "",
-                      sentence.hiragana ?? "",
-                    )
-                  : (sentence.text ?? ""),
-              }}
-            />
-            <div className="break-words text-sm opacity-60">
-              {sentence.translation}
+              className={clsx(
+                "badge my-2",
+                sentence.role === selectedRole
+                  ? "badge-accent"
+                  : "badge-neutral",
+              )}
+            >
+              {sentence.role}
             </div>
-          </div>
-          <div className="flex shrink-0 gap-2">
-            {sentence.audioUrl && (isActive || !isPracticing) && (
+            {sentence.audioUrl && (
               <button
                 className="btn btn-circle btn-ghost btn-sm"
-                onClick={() =>
-                  sentence.audioUrl && onPlayAudio(sentence.audioUrl)
-                }
+                onClick={() => onPlayAudio(sentence.audioUrl!)}
                 aria-label="Play audio"
               >
                 <PlayCircleIcon className="h-5 w-5" />
@@ -85,6 +66,26 @@ export function SentenceCard({
                 <AcademicCapIcon className="h-5 w-5" />
               </button>
             )}
+          </div>
+          <div className="flex flex-grow flex-col gap-1">
+            <div
+              className={clsx(
+                "group/text break-words font-bold",
+                isBlurMode &&
+                  "blur-sm transition-all duration-200 hover:blur-none",
+              )}
+              dangerouslySetInnerHTML={{
+                __html: showHiragana
+                  ? matchTextWithReadings(
+                      sentence.text ?? "",
+                      sentence.hiragana ?? "",
+                    )
+                  : (sentence.text ?? ""),
+              }}
+            />
+            <div className="break-words text-sm opacity-60">
+              {sentence.translation}
+            </div>
           </div>
         </div>
       </div>
