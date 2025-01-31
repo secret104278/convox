@@ -1,29 +1,48 @@
-# Create T3 App
+# ConvoX - AI-Powered Language Practice
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+ConvoX is an interactive language learning platform that helps users practice conversational Japanese through AI-generated dialogues and audio. Built on the T3 Stack, it combines modern web technologies with AI capabilities to create an immersive learning experience.
 
-## What's next? How do I make an app with this?
+## Features
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+- 🗣️ AI-generated Japanese conversations
+- 🔊 Text-to-speech with natural pronunciation
+- 📚 Practice history tracking
+- 🎯 Customizable practice scenarios
+- 📱 Responsive design for all devices
+- 🎨 Modern UI with DaisyUI and TailwindCSS
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+## Tech Stack
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+This project uses the following technologies:
 
-## Learn More
+### Core
+- [Next.js](https://nextjs.org) - React framework
+- [tRPC](https://trpc.io) - Type-safe API layer
+- [Prisma](https://prisma.io) - Database ORM
+- [Tailwind CSS](https://tailwindcss.com) - Utility-first CSS
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+### AI Integration
+- [LangChain](https://www.langchain.com) - AI orchestration
+- [OpenAI](https://openai.com) - GPT models
+- [DeepSeek](https://deepseek.com) - Alternative LLM
+- [Ollama](https://ollama.ai) - Local LLM support
+- [Google Cloud TTS](https://cloud.google.com/text-to-speech) - Text-to-speech
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+### UI Components
+- [DaisyUI](https://daisyui.com) - Tailwind component library
+- [Heroicons](https://heroicons.com) - SVG icons
+- [Geist](https://geist-ui.dev) - Modern font
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+## Getting Started
 
-## How do I deploy this?
+1. Clone the repository
+2. Install dependencies:
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+```bash
+pnpm install
+```
+3. Set up environment variables (see `.env.example`)
+4. Start the development server:
+```bash
+pnpm dev
+```
