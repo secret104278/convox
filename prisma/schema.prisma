@@ -2,18 +2,37 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
 datasource db {
   provider = "sqlite"
   url      = "file:./db.sqlite"
 }
 
-model ConversationSession {
-  id        String   @id @default(cuid())
-  prompt    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  conversations Json
+model Practice {
+  id            String         @id @default(cuid())
+  title         String?
+  prompt        String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  conversations Conversation[]
 
   @@index([createdAt])
-} 
+}
 
+model Conversation {
+  id    String  @id @default(cuid())
+  title String?
+
+  /// [ConversationContentType]
+  content Json
+
+  createdAt  DateTime @default(now())
+  practiceId String
+  practice   Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([practiceId])
+}

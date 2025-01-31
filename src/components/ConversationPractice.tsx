@@ -13,36 +13,53 @@ import { api } from "~/trpc/react";
 export function ConversationPractice() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get("session") ?? undefined;
+  const practiceId = searchParams.get("practice") ?? undefined;
+  const conversationId = searchParams.get("conversation") ?? undefined;
   const isNew = searchParams.get("new") === "true";
 
   const utils = api.useUtils();
-  const { data: currentSession } = api.conversations.getSession.useQuery(
-    { id: sessionId! },
-    { enabled: !!sessionId },
+  const { data: currentPractice } = api.conversations.getPractice.useQuery(
+    { id: practiceId! },
+    { enabled: !!practiceId },
   );
-  const conversations = currentSession?.conversations ?? [];
+  const { data: currentConversation } =
+    api.conversations.getConversation.useQuery(
+      { id: conversationId! },
+      { enabled: !!conversationId },
+    );
+  const conversations = currentConversation?.content ?? [];
 
   const generateMutation = api.conversations.generate.useMutation({
     onSuccess: async (result) => {
-      await utils.conversations.getSessions.invalidate();
-      await utils.conversations.getSession.invalidate({ id: result.sessionId });
+      await utils.conversations.getPractices.invalidate();
+      if (result.practice.id) {
+        await utils.conversations.getPractice.invalidate({
+          id: result.practice.id,
+        });
+      }
+      if (result.conversation.id) {
+        await utils.conversations.getConversation.invalidate({
+          id: result.conversation.id,
+        });
+      }
       setCurrentIndex(-1);
       setIsPracticing(false);
-      router.push(`/?session=${result.sessionId}`);
+      router.push(
+        `/?practice=${result.practice.id}&conversation=${result.conversation.id}`,
+      );
     },
   });
 
-  const [prompt, setPrompt] = useState(currentSession?.prompt ?? "");
+  const [prompt, setPrompt] = useState(currentPractice?.prompt ?? "");
   const [selectedRole, setSelectedRole] = useState<"A" | "B">("A");
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isPracticing, setIsPracticing] = useState(false);
 
   useEffect(() => {
-    if (currentSession) {
-      setPrompt(currentSession.prompt);
+    if (currentPractice) {
+      setPrompt(currentPractice.prompt);
     }
-  }, [currentSession]);
+  }, [currentPractice]);
 
   useEffect(() => {
     if (isNew) {
@@ -110,7 +127,9 @@ export function ConversationPractice() {
               {!conversations.length && (
                 <button
                   className={`btn btn-primary gap-2 ${generateMutation.isPending ? "loading" : ""}`}
-                  onClick={() => generateMutation.mutate({ prompt, sessionId })}
+                  onClick={() =>
+                    generateMutation.mutate({ prompt, practiceId })
+                  }
                   disabled={generateMutation.isPending}
                 >
                   <SpeakerWaveIcon className="h-5 w-5" />
@@ -138,7 +157,7 @@ export function ConversationPractice() {
                   <button
                     className="btn btn-primary gap-2"
                     onClick={() =>
-                      generateMutation.mutate({ prompt, sessionId })
+                      generateMutation.mutate({ prompt, practiceId })
                     }
                     disabled={generateMutation.isPending}
                   >
@@ -224,7 +243,9 @@ export function ConversationPractice() {
                 </button>
                 <button
                   className="btn btn-primary gap-2"
-                  onClick={() => generateMutation.mutate({ prompt, sessionId })}
+                  onClick={() =>
+                    generateMutation.mutate({ prompt, practiceId })
+                  }
                 >
                   <SpeakerWaveIcon className="h-5 w-5" />
                   生成新對話

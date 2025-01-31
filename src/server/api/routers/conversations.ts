@@ -9,19 +9,10 @@ import { StructuredOutputParser } from "langchain/output_parsers";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { env } from "~/env";
 import { db } from "~/server/db";
-import type { Conversation } from "~/types/db";
+import { llmConversationSchema } from "~/types/db";
 
 const outputParser = StructuredOutputParser.fromZodSchema(
-  z.object({
-    conversations: z.array(
-      z.object({
-        role: z.enum(["A", "B"]),
-        text: z.string(),
-        hiragana: z.string(),
-        translation: z.string(),
-      }),
-    ),
-  }),
+  llmConversationSchema,
 );
 
 // Initialize TTS clients
@@ -63,11 +54,11 @@ export const conversationsRouter = createTRPCRouter({
     .input(
       z.object({
         prompt: z.string(),
-        sessionId: z.string().optional(),
+        practiceId: z.string().optional(),
       }),
     )
     .mutation(async ({ input }) => {
-      const { prompt, sessionId } = input;
+      const { prompt, practiceId } = input;
 
       // Initialize the appropriate chat model based on provider
       let model;
@@ -115,6 +106,8 @@ export const conversationsRouter = createTRPCRouter({
 2. 平假名拼音
 3. 繁體中文翻譯
 
+同時，請為這段對話生成一個簡短的標題，用來概括對話的主題或內容。
+
 要求：
 - 請避免下雨、野餐等主題
 - 對話要生動有趣，包含適當的幽默
@@ -126,11 +119,13 @@ export const conversationsRouter = createTRPCRouter({
         ),
       ]);
 
-      const conversations = response.conversations as Conversation[];
+      const { title, sentences } = response as z.infer<
+        typeof outputParser.schema
+      >;
 
       // Generate audio for each line using the selected provider
       const conversationsWithAudio = await Promise.all(
-        conversations.map(async (conv) => {
+        sentences.map(async (conv) => {
           const audioContent = await (env.TTS_PROVIDER === "google"
             ? generateGoogleSpeech(conv.hiragana)
             : generateOpenAISpeech(conv.hiragana));
@@ -144,73 +139,109 @@ export const conversationsRouter = createTRPCRouter({
         }),
       );
 
-      // Save or update the session
-      const session = await db.conversationSession.upsert({
-        where: {
-          id: sessionId ?? "",
-        },
-        create: {
-          prompt,
-          conversations: conversationsWithAudio,
-        },
-        update: {
-          conversations: conversationsWithAudio,
-          updatedAt: new Date(),
+      // Create or get practice
+      let practice;
+      if (practiceId) {
+        practice = await db.practice.findUnique({
+          where: { id: practiceId },
+          include: { conversations: true },
+        });
+        if (!practice) {
+          throw new Error("Practice not found");
+        }
+      } else {
+        practice = await db.practice.create({
+          data: {
+            prompt,
+            title: prompt,
+          },
+        });
+      }
+
+      // Create new conversation
+      const conversation = await db.conversation.create({
+        data: {
+          title,
+          content: conversationsWithAudio,
+          practiceId: practice.id,
         },
       });
 
       return {
-        conversations: conversationsWithAudio,
-        sessionId: session.id,
+        practice,
+        conversation,
       };
     }),
 
-  getSessions: publicProcedure.query(async () => {
-    const dbSessions = await db.conversationSession.findMany({
+  getPractices: publicProcedure.query(async () => {
+    return db.practice.findMany({
+      include: {
+        conversations: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+      },
       orderBy: {
         createdAt: "desc",
       },
     });
-
-    return dbSessions.map((session) => ({
-      ...session,
-      conversations: session.conversations as Conversation[],
-      createdAt: new Date(session.createdAt),
-      updatedAt: new Date(session.updatedAt),
-    }));
   }),
 
-  getSession: publicProcedure
+  getPractice: publicProcedure
     .input(
       z.object({
         id: z.string(),
       }),
     )
     .query(async ({ input }) => {
-      const session = await db.conversationSession.findUnique({
+      const practice = await db.practice.findUnique({
+        where: { id: input.id },
+        include: {
+          conversations: {
+            orderBy: {
+              createdAt: "desc",
+            },
+          },
+        },
+      });
+
+      if (!practice) {
+        throw new Error("Practice not found");
+      }
+
+      return practice;
+    }),
+
+  getConversation: publicProcedure
+    .input(
+      z.object({
+        id: z.string(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const conversation = await db.conversation.findUnique({
         where: { id: input.id },
       });
 
-      if (!session) {
-        throw new Error("Session not found");
+      if (!conversation) {
+        throw new Error("Conversation not found");
       }
 
       return {
-        ...session,
-        conversations: session.conversations as Conversation[],
-        createdAt: new Date(session.createdAt),
-        updatedAt: new Date(session.updatedAt),
+        ...conversation,
+        content: conversation.content,
       };
     }),
 
-  deleteSession: publicProcedure
+  deletePractice: publicProcedure
     .input(
       z.object({
         id: z.string(),
       }),
     )
     .mutation(async ({ input }) => {
-      await db.conversationSession.delete({
+      await db.practice.delete({
         where: { id: input.id },
       });
     }),

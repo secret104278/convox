@@ -1,5 +1,5 @@
 import { ConversationPractice } from "~/components/ConversationPractice";
-import { SessionHistory } from "~/components/SessionHistory";
+import { PracticeHistory } from "~/components/PracticeHistory";
 import {
   LanguageIcon,
   SpeakerWaveIcon,
@@ -39,7 +39,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <SessionHistory />
+        <PracticeHistory />
       </div>
     </main>
   );
