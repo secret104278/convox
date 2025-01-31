@@ -9,6 +9,7 @@ import {
   ArrowPathIcon,
   StopIcon,
   ArrowUpCircleIcon,
+  AcademicCapIcon,
 } from "@heroicons/react/24/solid";
 import { api } from "~/trpc/react";
 import { difficultySchema, type voiceModeSchema } from "~/types";
@@ -133,6 +134,10 @@ export function ConversationPractice() {
   // Add ref for the current conversation card
   const currentCardRef = useRef<HTMLDivElement>(null);
   const currentAudioController = useRef<AbortController | null>(null);
+
+  const [selectedGrammarExplanation, setSelectedGrammarExplanation] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     if (currentPractice) {
@@ -384,18 +389,32 @@ export function ConversationPractice() {
                             }}
                           />
                         </div>
-                        {conv.audioUrl &&
-                          (index === currentIndex || !isPracticing) && (
+                        <div className="flex gap-2">
+                          {conv.audioUrl &&
+                            (index === currentIndex || !isPracticing) && (
+                              <button
+                                className="btn btn-circle btn-ghost btn-sm"
+                                onClick={() =>
+                                  conv.audioUrl && playAudio(conv.audioUrl)
+                                }
+                                aria-label="Play audio"
+                              >
+                                <PlayCircleIcon className="h-5 w-5" />
+                              </button>
+                            )}
+                          {conv.grammarExplanation && (
                             <button
                               className="btn btn-circle btn-ghost btn-sm"
                               onClick={() =>
-                                conv.audioUrl && playAudio(conv.audioUrl)
+                                setSelectedGrammarExplanation(
+                                  conv.grammarExplanation,
+                                )
                               }
-                              aria-label="Play audio"
                             >
-                              <PlayCircleIcon className="h-5 w-5" />
+                              <AcademicCapIcon className="h-5 w-5" />
                             </button>
                           )}
+                        </div>
                       </div>
                       <div className="flex flex-col gap-1 text-sm">
                         <div className="mt-1 opacity-60">
@@ -410,6 +429,38 @@ export function ConversationPractice() {
           )}
         </div>
       </div>
+
+      {/* Grammar Explanation Modal */}
+      <dialog
+        id="grammar_modal"
+        className="modal modal-bottom sm:modal-middle"
+        open={!!selectedGrammarExplanation}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setSelectedGrammarExplanation(null);
+          }
+        }}
+      >
+        <div className="modal-box">
+          <h3 className="text-lg font-bold">文法說明</h3>
+          <p className="whitespace-pre-wrap py-4">
+            {selectedGrammarExplanation}
+          </p>
+          <div className="modal-action">
+            <button
+              className="btn"
+              onClick={() => setSelectedGrammarExplanation(null)}
+            >
+              關閉
+            </button>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button onClick={() => setSelectedGrammarExplanation(null)}>
+            close
+          </button>
+        </form>
+      </dialog>
 
       {conversations.length > 0 && !isNew && (
         <div className="fixed bottom-0 left-0 right-0 flex justify-center bg-base-100 p-4 shadow-lg">

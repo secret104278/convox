@@ -8,6 +8,7 @@ export const llmConversationSchema = z.object({
       text: z.string(),
       hiragana: z.string(),
       translation: z.string(),
+      grammarExplanation: z.string(),
     }),
   ),
 });
