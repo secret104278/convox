@@ -98,13 +98,23 @@ export function ConversationPractice() {
             </div>
           ) : (
             <div className="form-control">
-              <textarea
-                className="textarea textarea-bordered h-16"
-                placeholder="輸入主題"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                disabled={!isNew}
-              />
+              {isNew ? (
+                <textarea
+                  className="textarea textarea-bordered h-16"
+                  placeholder="輸入主題"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                />
+              ) : (
+                <p className="whitespace-pre-wrap">
+                  {prompt.split("\\n").map((line, i) => (
+                    <span key={i}>
+                      {line}
+                      <br />
+                    </span>
+                  ))}
+                </p>
+              )}
               <div className="mt-4 flex flex-wrap gap-4">
                 <select
                   className="select select-bordered w-full sm:w-auto"
