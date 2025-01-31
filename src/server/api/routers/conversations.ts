@@ -136,7 +136,7 @@ Create a natural and lively daily conversation with 8-10 exchanges. For each sen
 1. Original Japanese text (use kanji without including furigana)
 2. Hiragana pronunciation
 3. Translation. Please use Traditional Chinese, Simplified Chinese is prohibited
-4. Brief explanation of the particle, verb conjugation, and other grammar points in the sentence. Please use Traditional Chinese, Simplified Chinese is prohibited
+4. Brief explanation of the particle, verb conjugation, and other grammar points in the sentence, except for "${prompt}" if any. Please use Traditional Chinese, Simplified Chinese is prohibited
 
 Also, generate a short title that summarizes the theme or content of the conversation.
 

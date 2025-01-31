@@ -207,43 +207,7 @@ export function ConversationPractice() {
     }
   }, [conversations, currentIndex, playAudio]);
 
-  // Add effect for scrolling
-  useEffect(() => {
-    if (currentCardRef.current && isPracticing) {
-      currentCardRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }
-  }, [currentIndex, isPracticing]);
-
-  useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (isPracticing) {
-        switch (event.key) {
-          case "ArrowRight":
-            event.preventDefault();
-            handleNext();
-            break;
-          case "ArrowLeft":
-            event.preventDefault();
-            handlePrevious();
-            break;
-          case "ArrowUp":
-            event.preventDefault();
-            replayAudio();
-            break;
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyPress);
-    return () => {
-      window.removeEventListener("keydown", handleKeyPress);
-    };
-  }, [isPracticing, currentIndex, handleNext, handlePrevious, replayAudio]);
-
-  const startPractice = () => {
+  const startPractice = useCallback(() => {
     currentAudioController.current?.abort();
 
     setIsPracticing(true);
@@ -257,13 +221,62 @@ export function ConversationPractice() {
     ) {
       playAudio(firstConversation.audioUrl);
     }
-  };
+  }, [conversations, playAudio, selectedRole]);
 
   const resetPractice = () => {
     currentAudioController.current?.abort();
     setIsPracticing(false);
     setCurrentIndex(-1);
   };
+
+  // Add effect for scrolling
+  useEffect(() => {
+    if (currentCardRef.current && isPracticing) {
+      currentCardRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [currentIndex, isPracticing]);
+
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      switch (event.key) {
+        case "ArrowRight":
+          event.preventDefault();
+          if (isPracticing) handleNext();
+          break;
+        case "ArrowLeft":
+          event.preventDefault();
+          if (isPracticing) handlePrevious();
+          break;
+        case "ArrowUp":
+          event.preventDefault();
+          if (isPracticing) replayAudio();
+          break;
+        case "Enter":
+          event.preventDefault();
+          startPractice();
+          break;
+        case " ":
+          event.preventDefault();
+          resetPractice();
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => {
+      window.removeEventListener("keydown", handleKeyPress);
+    };
+  }, [
+    isPracticing,
+    currentIndex,
+    handleNext,
+    handlePrevious,
+    replayAudio,
+    startPractice,
+  ]);
 
   const isLastLine = currentIndex === conversations.length - 1;
   const isFirstLine = currentIndex === 0;
