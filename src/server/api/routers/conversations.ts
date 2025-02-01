@@ -97,21 +97,29 @@ export const conversationsRouter = createTRPCRouter({
         }
       }
 
+      const modelConfig = {
+        temperature: 0.7,
+        topP: 1,
+        presencePenalty: 0.6,
+        frequencyPenalty: 0,
+        maxTokens: 16384,
+      };
+
       // Initialize the appropriate chat model based on provider
       let model;
       switch (env.LLM_PROVIDER) {
         case "deepseek":
           model = new ChatDeepSeek({
             modelName: "deepseek-chat",
-            temperature: 0.7,
             apiKey: env.DEEPSEEK_API_KEY,
+            ...modelConfig,
           });
           break;
         case "ollama":
           model = new ChatOllama({
             baseUrl: env.OLLAMA_BASE_URL,
             model: env.OLLAMA_MODEL,
-            temperature: 0.7,
+            ...modelConfig,
           });
           break;
         case "nvidia":
@@ -122,71 +130,70 @@ export const conversationsRouter = createTRPCRouter({
               baseURL: "https://integrate.api.nvidia.com/v1",
             },
             model: "deepseek-ai/deepseek-r1",
-            temperature: 1,
-            topP: 1,
-            presencePenalty: 0.6,
-            frequencyPenalty: 0,
-            maxTokens: 4096,
-            cache: false,
+            ...modelConfig,
           });
           break;
         default: // openai
           model = new ChatOpenAI({
             modelName: env.OPENAI_MODEL,
-            temperature: 1,
-            topP: 1,
-            presencePenalty: 0.6,
-            frequencyPenalty: 0,
-            maxTokens: 4096,
-            cache: false,
             openAIApiKey: env.OPENAI_API_KEY,
+            ...modelConfig,
           });
       }
 
-      model = model.withStructuredOutput(outputParser, {
+      const structuredModel = model.withStructuredOutput(outputParser, {
         strict: true,
       });
 
-      const response = await model.invoke([
+      const response = await structuredModel.invoke([
         new SystemMessage(
           `You are a humorous and lively Japanese language teacher. You excel at creating fun and practical teaching materials but also keep the conversation natural and lively.`,
         ),
         new HumanMessage(
-          `Please generate a Japanese conversation based on the following topic: ${prompt}
+          `Generate a Japanese conversation with these specifications:
 
-Create a natural and lively daily conversation with 8-10 exchanges. For each sentence, please provide:
-1. Original Japanese text (use kanji without including furigana)
-2. Hiragana pronunciation
-3. Translation. Please use Traditional Chinese (zh-TW), Simplified Chinese is prohibited
-4. Complete explanation of the particle, verb conjugation, and other grammar points in the sentence, except for "${prompt}" if any. Please use Traditional Chinese (zh-TW), Simplified Chinese is prohibited
+**Conversation Structure:**
+- Length: 8-10 exchanges
+- For each sentence, provide:
+  1. Original Japanese text (use kanji without furigana)
+  2. Hiragana pronunciation
+  3. Translation in Traditional Chinese (zh-TW), Simplified Chinese is prohibited
+  4. Detailed grammar explanation in Traditional Chinese (zh-TW), Simplified Chinese is prohibited
+- Generate a short title that summarizes the theme or content of the conversation.
 
-Also, generate a short title that summarizes the theme or content of the conversation.
-
-Requirements:
-- Generate a conversation at ${difficulty} level
-- Avoid topics like ${existingTitles.map((title) => `"${title}"`).join(", ")}
-- 
+**Participants:**
 - ${
             voiceMode === "different"
               ? "The first person is male, the second person is female"
               : "Both are female"
-          }, both are in their 20s
-- Make the conversation between ${
+          }
+- Age: 20s
+- Relationship: ${
             familiarity === "stranger"
               ? "people who have never met before, maintain formal politeness"
               : familiarity === "casual"
                 ? "people who have medium familiarity, keep it casual while maintaining appropriate politeness"
                 : "close friends who are very familiar with each other, use casual and friendly language"
           }
-- Ensure the content reflects real-life situations instead of something in a textbook, and include some authentic Japanese cultural elements.`,
+
+**Content Requirements:**
+- Difficulty level: ${difficulty}
+- Include authentic Japanese cultural elements
+- Reflect real-life situations, not textbook examples
+- Use natural, conversational Japanese. Use natural pauses and interjections
+- Include varied sentence structures
+- Avoid topics: ${existingTitles.map((title) => `"${title}"`).join(", ")}
+
+**Conversation Topic:**
+${prompt}`,
         ),
       ]);
+
+      console.log("LLM response:", response);
 
       const { title, sentences } = response as z.infer<
         typeof outputParser.schema
       >;
-
-      console.log(`LLM response: ${JSON.stringify(response)}`);
 
       // Generate audio for each line using the selected provider
       const conversationsWithAudio = await Promise.all(
