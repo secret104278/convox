@@ -10,9 +10,9 @@ import {
   voiceModeSchema,
   type StreamingChunk,
   deepPartialLLMConversationSchema,
-  type DeepPartialLLMConversation,
 } from "~/types";
 import { zodResponseFormat } from "openai/helpers/zod";
+import { chatCompletionStreamToGenerator } from "./utils";
 
 const familiaritySchema = z.enum(["stranger", "casual", "close"]);
 
@@ -76,39 +76,70 @@ export const conversationsRouter = createTRPCRouter({
     .mutation(async function* ({ input }) {
       const { prompt, practiceId, difficulty, voiceMode, familiarity } = input;
 
-      try {
-        // Get existing conversation titles if practiceId exists
-        const existingTitles: string[] = ["rain", "picnic", "umbrella"];
-        if (practiceId) {
-          const practice = await db.practice.findUnique({
-            where: { id: practiceId },
-            select: { conversations: { select: { title: true } } },
-          });
-          if (practice) {
-            existingTitles.push(
-              ...practice.conversations
-                .map((conv) => conv.title)
-                .filter((title): title is string => title !== null),
-            );
-          }
+      // Get existing conversation titles and content if practiceId exists
+      const existingTitles: string[] = ["rain", "picnic", "umbrella"];
+      let previousConversations = "";
+      if (practiceId) {
+        const [practiceWithLatestConversations, practiceWithAllConversations] =
+          await Promise.all([
+            db.practice.findUnique({
+              where: { id: practiceId },
+              select: {
+                conversations: {
+                  select: {
+                    content: true,
+                  },
+                  take: 3, // Limit to last 3 conversations to avoid token limits
+                  orderBy: { createdAt: "desc" },
+                },
+              },
+            }),
+            db.practice.findUnique({
+              where: { id: practiceId },
+              select: {
+                conversations: {
+                  select: {
+                    title: true,
+                  },
+                },
+              },
+            }),
+          ]);
+
+        if (practiceWithLatestConversations) {
+          // Format previous conversations for the prompt
+          previousConversations = practiceWithLatestConversations.conversations
+            .map((conversation) =>
+              conversation.content.map((sentence) => sentence.text).join("\n"),
+            )
+            .join("\n---\n");
         }
 
-        const stream = openai.beta.chat.completions.stream({
-          model: env.OPENAI_MODEL,
-          temperature: 0.7,
-          top_p: 1,
-          presence_penalty: 0.6,
-          frequency_penalty: 0,
-          max_tokens: 16384,
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are a humorous and lively Japanese language teacher. You excel at creating fun and practical teaching materials but also keep the conversation natural and lively.",
-            },
-            {
-              role: "user",
-              content: `Generate a Japanese conversation with these specifications:
+        if (practiceWithAllConversations) {
+          existingTitles.push(
+            ...practiceWithAllConversations.conversations
+              .map((conv) => conv.title)
+              .filter((title): title is string => title !== null),
+          );
+        }
+      }
+
+      const stream = openai.beta.chat.completions.stream({
+        model: env.OPENAI_MODEL,
+        temperature: 0.7,
+        top_p: 1,
+        presence_penalty: 0.6,
+        frequency_penalty: 0.1,
+        max_tokens: 16384,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a humorous and lively Japanese language teacher. You excel at creating fun and practical teaching materials but also keep the conversation natural and lively.",
+          },
+          {
+            role: "user",
+            content: `Generate a Japanese conversation with these specifications:
 
 **Conversation Structure:**
 - Length: 8-10 exchanges
@@ -121,140 +152,117 @@ export const conversationsRouter = createTRPCRouter({
 
 **Participants:**
 - ${
-                voiceMode === "different"
-                  ? "The first person is male, the second person is female"
-                  : "Both are female"
-              }
+              voiceMode === "different"
+                ? "The first person is male, the second person is female"
+                : "Both are female"
+            }
 - Age: 20s
 - Relationship: ${
-                familiarity === "stranger"
-                  ? "people who have never met before, maintain formal politeness"
-                  : familiarity === "casual"
-                    ? "people who have medium familiarity, keep it casual while maintaining appropriate politeness"
-                    : "close friends who are very familiar with each other, use casual and friendly language"
-              }
+              familiarity === "stranger"
+                ? "people who have never met before, maintain formal politeness"
+                : familiarity === "casual"
+                  ? "people who have medium familiarity, keep it casual while maintaining appropriate politeness"
+                  : "close friends who are very familiar with each other, use casual and friendly language"
+            }
 
 **Content Requirements:**
 - Difficulty level: ${difficulty}
 - Include authentic Japanese cultural elements
 - Reflect real-life situations, not textbook examples
 - Use natural, conversational Japanese. Use natural pauses and interjections
-- Include varied sentence structures
-- Avoid topics: ${existingTitles.map((title) => `"${title}"`).join(", ")}
+- Create unique scenarios and avoid common conversation patterns
+- Use diverse vocabulary appropriate for the difficulty level
+- If possible, slightly include some unexpected elements or creative twists while staying natural
+- Avoid topics like ${existingTitles.join(", ")}
 
 **Conversation Topic:**
 ${prompt}`,
-            },
-          ],
-          response_format: zodResponseFormat(
-            llmConversationSchema,
-            "conversation",
-          ),
-        });
+          },
+          ...(previousConversations
+            ? [
+                {
+                  role: "user",
+                  content: `Here are some previous conversations generated for this topic. Please create a new conversation that uses different vocabulary and scenarios:\n\n${previousConversations}`,
+                } as const,
+              ]
+            : []),
+        ],
+        response_format: zodResponseFormat(
+          llmConversationSchema,
+          "conversation",
+        ),
+      });
 
-        type StreamEvent<T> =
-          | { type: "data"; data: T }
-          | { type: "end" }
-          | { type: "skip" };
-
-        while (true) {
-          const event = await new Promise<
-            StreamEvent<DeepPartialLLMConversation>
-          >((resolve) => {
-            stream.once("content.delta", ({ parsed }) => {
-              if (parsed) {
-                const { success, data, error } =
-                  deepPartialLLMConversationSchema.safeParse(parsed);
-                if (success) {
-                  resolve({ type: "data", data });
-                } else {
-                  resolve({ type: "skip" });
-                  console.error(error, parsed);
-                }
-              }
-            });
-            stream.once("end", () => {
-              resolve({ type: "end" });
-            });
-          });
-
-          if (event.type === "end") {
-            break;
-          } else if (event.type === "data") {
-            yield {
-              type: "llm_progress",
-              data: event.data,
-            } satisfies StreamingChunk;
-          }
-        }
-
-        // Get the final completion
-        const finalCompletion = await stream.finalChatCompletion();
-        const parsedResponse = finalCompletion.choices[0]?.message.parsed;
-
-        if (parsedResponse) {
-          const { title, sentences } = parsedResponse;
-
-          // Create or get practice
-          let practice;
-          if (practiceId) {
-            practice = await db.practice.update({
-              where: { id: practiceId },
-              data: {
-                prompt,
-              },
-            });
-            if (!practice) {
-              throw new Error("Practice not found");
-            }
-          } else {
-            practice = await db.practice.create({
-              data: {
-                prompt,
-                title: prompt,
-              },
-            });
-          }
-
-          // Generate audio for each line using the selected provider
-          const conversationsWithAudio = [];
-          for (const [index, conv] of sentences.entries()) {
-            const role = index % 2 === 0 ? "A" : "B";
-            const audioContent = await (env.TTS_PROVIDER === "google"
-              ? generateGoogleSpeech(conv.hiragana, role, voiceMode)
-              : generateOpenAISpeech(conv.hiragana));
-
-            console.log(`Processing TTS: ${index} - ${conv.hiragana}`);
-
-            if (!audioContent) {
-              throw new Error("Failed to generate audio");
-            }
-
-            const audioUrl = `data:audio/mp3;base64,${audioContent.toString("base64")}`;
-            const sentenceWithAudio = { ...conv, audioUrl };
-            conversationsWithAudio.push(sentenceWithAudio);
-          }
-
-          // Create new conversation
-          const conversation = await db.conversation.create({
-            data: {
-              title,
-              content: conversationsWithAudio,
-              practiceId: practice.id,
-              difficulty,
-              voiceMode,
-              familiarity,
-            },
-          });
-
+      for await (const chunk of chatCompletionStreamToGenerator(stream)) {
+        const { success, data } =
+          deepPartialLLMConversationSchema.safeParse(chunk);
+        if (success) {
           yield {
-            type: "complete",
-            data: conversation,
+            type: "llm_progress",
+            data: data,
           } satisfies StreamingChunk;
         }
-      } catch (error) {
-        console.error("Error in generate:", error);
-        throw error;
+      }
+
+      // Get the final completion
+      const finalCompletion = await stream.finalChatCompletion();
+      const parsedResponse = finalCompletion.choices[0]?.message.parsed;
+
+      if (parsedResponse) {
+        const { title, sentences } = parsedResponse;
+
+        // Generate audio for each line using the selected provider
+        const conversationsWithAudio = [];
+        for (const [index, conv] of sentences.entries()) {
+          const role = index % 2 === 0 ? "A" : "B";
+          const audioContent = await (env.TTS_PROVIDER === "google"
+            ? generateGoogleSpeech(conv.hiragana, role, voiceMode)
+            : generateOpenAISpeech(conv.hiragana));
+
+          console.log(`Processing TTS: ${index} - ${conv.hiragana}`);
+
+          if (!audioContent) {
+            throw new Error("Failed to generate audio");
+          }
+
+          const audioUrl = `data:audio/mp3;base64,${audioContent.toString("base64")}`;
+          const sentenceWithAudio = { ...conv, audioUrl };
+          conversationsWithAudio.push(sentenceWithAudio);
+        }
+
+        // Create or get practice
+        const practice = await db.practice.upsert({
+          select: {
+            id: true,
+          },
+          where: {
+            id: practiceId ?? "",
+          },
+          create: {
+            prompt,
+            title: prompt,
+          },
+          update: {
+            prompt,
+          },
+        });
+
+        // Create new conversation
+        const conversation = await db.conversation.create({
+          data: {
+            title,
+            content: conversationsWithAudio,
+            practiceId: practice.id,
+            difficulty,
+            voiceMode,
+            familiarity,
+          },
+        });
+
+        yield {
+          type: "complete",
+          data: conversation,
+        } satisfies StreamingChunk;
       }
     }),
 
