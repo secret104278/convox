@@ -82,6 +82,13 @@ export function ConversationPractice() {
     }
   }, [currentIndex, isPracticing]);
 
+  // Reset practice when conversation changes
+  useEffect(() => {
+    if (currentConversation) {
+      resetPractice();
+    }
+  }, [currentConversation, resetPractice]);
+
   useEffect(() => {
     if (currentPractice) {
       setPrompt(currentPractice.prompt);
@@ -145,14 +152,15 @@ export function ConversationPractice() {
                 </select>
                 <button
                   className="btn btn-primary w-full gap-2 sm:w-auto"
-                  onClick={() =>
-                    generateConversation({
+                  onClick={async () => {
+                    await generateConversation({
                       prompt,
                       difficulty,
                       voiceMode,
                       familiarity,
-                    })
-                  }
+                    });
+                    resetPractice();
+                  }}
                   disabled={isPending}
                 >
                   {isPending ? (
