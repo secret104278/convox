@@ -165,6 +165,7 @@ Also, generate a short title that summarizes the theme or content of the convers
 Requirements:
 - Generate a conversation at ${difficulty} level
 - Avoid topics like ${existingTitles.map((title) => `"${title}"`).join(", ")}
+- 
 - ${
             voiceMode === "different"
               ? "The first person is male, the second person is female"
@@ -177,7 +178,7 @@ Requirements:
                 ? "people who have medium familiarity, keep it casual while maintaining appropriate politeness"
                 : "close friends who are very familiar with each other, use casual and friendly language"
           }
-- Ensure the content reflects real-life situations, and include some authentic Japanese cultural elements.`,
+- Ensure the content reflects real-life situations instead of something in a textbook, and include some authentic Japanese cultural elements.`,
         ),
       ]);
 
