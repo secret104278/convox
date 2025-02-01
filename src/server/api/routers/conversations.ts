@@ -249,6 +249,11 @@ Requirements:
     return db.practice.findMany({
       include: {
         conversations: {
+          select: {
+            id: true,
+            title: true,
+            createdAt: true,
+          },
           orderBy: {
             createdAt: "desc",
           },
