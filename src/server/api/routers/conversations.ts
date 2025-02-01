@@ -1,23 +1,18 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-import { ChatDeepSeek } from "@langchain/deepseek";
-import { ChatOpenAI } from "@langchain/openai";
-import { ChatOllama } from "@langchain/ollama";
 import { TextToSpeechClient, type protos } from "@google-cloud/text-to-speech";
 import OpenAI from "openai";
-import { StructuredOutputParser } from "langchain/output_parsers";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { env } from "~/env";
 import { db } from "~/server/db";
 import {
   llmConversationSchema,
   difficultySchema,
   voiceModeSchema,
+  type StreamingChunk,
+  deepPartialLLMConversationSchema,
+  type DeepPartialLLMConversation,
 } from "~/types";
-
-const outputParser = StructuredOutputParser.fromZodSchema(
-  llmConversationSchema,
-);
+import { zodResponseFormat } from "openai/helpers/zod";
 
 const familiaritySchema = z.enum(["stranger", "casual", "close"]);
 
@@ -78,79 +73,42 @@ export const conversationsRouter = createTRPCRouter({
         familiarity: familiaritySchema.default("casual"),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async function* ({ input }) {
       const { prompt, practiceId, difficulty, voiceMode, familiarity } = input;
 
-      // Get existing conversation titles if practiceId exists
-      const existingTitles: string[] = ["rain", "picnic", "umbrella"];
-      if (practiceId) {
-        const practice = await db.practice.findUnique({
-          where: { id: practiceId },
-          select: { conversations: { select: { title: true } } },
-        });
-        if (practice) {
-          existingTitles.push(
-            ...practice.conversations
-              .map((conv) => conv.title)
-              .filter((title) => title !== null),
-          );
+      try {
+        // Get existing conversation titles if practiceId exists
+        const existingTitles: string[] = ["rain", "picnic", "umbrella"];
+        if (practiceId) {
+          const practice = await db.practice.findUnique({
+            where: { id: practiceId },
+            select: { conversations: { select: { title: true } } },
+          });
+          if (practice) {
+            existingTitles.push(
+              ...practice.conversations
+                .map((conv) => conv.title)
+                .filter((title): title is string => title !== null),
+            );
+          }
         }
-      }
 
-      const modelConfig = {
-        temperature: 0.7,
-        topP: 1,
-        presencePenalty: 0.6,
-        frequencyPenalty: 0,
-        maxTokens: 16384,
-      };
-
-      // Initialize the appropriate chat model based on provider
-      let model;
-      switch (env.LLM_PROVIDER) {
-        case "deepseek":
-          model = new ChatDeepSeek({
-            modelName: "deepseek-chat",
-            apiKey: env.DEEPSEEK_API_KEY,
-            ...modelConfig,
-          });
-          break;
-        case "ollama":
-          model = new ChatOllama({
-            baseUrl: env.OLLAMA_BASE_URL,
-            model: env.OLLAMA_MODEL,
-            ...modelConfig,
-          });
-          break;
-        case "nvidia":
-          model = new ChatOpenAI({
-            apiKey:
-              "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",
-            configuration: {
-              baseURL: "https://integrate.api.nvidia.com/v1",
+        const stream = openai.beta.chat.completions.stream({
+          model: env.OPENAI_MODEL,
+          temperature: 0.7,
+          top_p: 1,
+          presence_penalty: 0.6,
+          frequency_penalty: 0,
+          max_tokens: 16384,
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a humorous and lively Japanese language teacher. You excel at creating fun and practical teaching materials but also keep the conversation natural and lively.",
             },
-            model: "deepseek-ai/deepseek-r1",
-            ...modelConfig,
-          });
-          break;
-        default: // openai
-          model = new ChatOpenAI({
-            modelName: env.OPENAI_MODEL,
-            openAIApiKey: env.OPENAI_API_KEY,
-            ...modelConfig,
-          });
-      }
-
-      const structuredModel = model.withStructuredOutput(outputParser, {
-        strict: true,
-      });
-
-      const response = await structuredModel.invoke([
-        new SystemMessage(
-          `You are a humorous and lively Japanese language teacher. You excel at creating fun and practical teaching materials but also keep the conversation natural and lively.`,
-        ),
-        new HumanMessage(
-          `Generate a Japanese conversation with these specifications:
+            {
+              role: "user",
+              content: `Generate a Japanese conversation with these specifications:
 
 **Conversation Structure:**
 - Length: 8-10 exchanges
@@ -163,18 +121,18 @@ export const conversationsRouter = createTRPCRouter({
 
 **Participants:**
 - ${
-            voiceMode === "different"
-              ? "The first person is male, the second person is female"
-              : "Both are female"
-          }
+                voiceMode === "different"
+                  ? "The first person is male, the second person is female"
+                  : "Both are female"
+              }
 - Age: 20s
 - Relationship: ${
-            familiarity === "stranger"
-              ? "people who have never met before, maintain formal politeness"
-              : familiarity === "casual"
-                ? "people who have medium familiarity, keep it casual while maintaining appropriate politeness"
-                : "close friends who are very familiar with each other, use casual and friendly language"
-          }
+                familiarity === "stranger"
+                  ? "people who have never met before, maintain formal politeness"
+                  : familiarity === "casual"
+                    ? "people who have medium familiarity, keep it casual while maintaining appropriate politeness"
+                    : "close friends who are very familiar with each other, use casual and friendly language"
+              }
 
 **Content Requirements:**
 - Difficulty level: ${difficulty}
@@ -186,71 +144,118 @@ export const conversationsRouter = createTRPCRouter({
 
 **Conversation Topic:**
 ${prompt}`,
-        ),
-      ]);
+            },
+          ],
+          response_format: zodResponseFormat(
+            llmConversationSchema,
+            "conversation",
+          ),
+        });
 
-      console.log("LLM response:", response);
+        type StreamEvent<T> =
+          | { type: "data"; data: T }
+          | { type: "end" }
+          | { type: "skip" };
 
-      const { title, sentences } = response as z.infer<
-        typeof outputParser.schema
-      >;
+        while (true) {
+          const event = await new Promise<
+            StreamEvent<DeepPartialLLMConversation>
+          >((resolve) => {
+            stream.once("content.delta", ({ parsed }) => {
+              if (parsed) {
+                const { success, data, error } =
+                  deepPartialLLMConversationSchema.safeParse(parsed);
+                if (success) {
+                  resolve({ type: "data", data });
+                } else {
+                  resolve({ type: "skip" });
+                  console.error(error, parsed);
+                }
+              }
+            });
+            stream.once("end", () => {
+              resolve({ type: "end" });
+            });
+          });
 
-      // Generate audio for each line using the selected provider
-      const conversationsWithAudio = await Promise.all(
-        sentences.map(async (conv, index) => {
-          const role = index % 2 === 0 ? "A" : "B";
-          const audioContent = await (env.TTS_PROVIDER === "google"
-            ? generateGoogleSpeech(conv.hiragana, role, voiceMode)
-            : generateOpenAISpeech(conv.hiragana));
+          if (event.type === "end") {
+            break;
+          } else if (event.type === "data") {
+            yield {
+              type: "llm_progress",
+              data: event.data,
+            } satisfies StreamingChunk;
+          }
+        }
 
-          console.log(`Processing TTS: ${index} - ${conv.hiragana}`);
+        // Get the final completion
+        const finalCompletion = await stream.finalChatCompletion();
+        const parsedResponse = finalCompletion.choices[0]?.message.parsed;
 
-          if (!audioContent) {
-            throw new Error("Failed to generate audio");
+        if (parsedResponse) {
+          const { title, sentences } = parsedResponse;
+
+          // Create or get practice
+          let practice;
+          if (practiceId) {
+            practice = await db.practice.update({
+              where: { id: practiceId },
+              data: {
+                prompt,
+              },
+            });
+            if (!practice) {
+              throw new Error("Practice not found");
+            }
+          } else {
+            practice = await db.practice.create({
+              data: {
+                prompt,
+                title: prompt,
+              },
+            });
           }
 
-          const audioUrl = `data:audio/mp3;base64,${audioContent.toString("base64")}`;
-          return { ...conv, audioUrl };
-        }),
-      );
+          // Generate audio for each line using the selected provider
+          const conversationsWithAudio = [];
+          for (const [index, conv] of sentences.entries()) {
+            const role = index % 2 === 0 ? "A" : "B";
+            const audioContent = await (env.TTS_PROVIDER === "google"
+              ? generateGoogleSpeech(conv.hiragana, role, voiceMode)
+              : generateOpenAISpeech(conv.hiragana));
 
-      // Create or get practice
-      let practice;
-      if (practiceId) {
-        practice = await db.practice.update({
-          where: { id: practiceId },
-          data: {
-            prompt,
-          },
-        });
-        if (!practice) {
-          throw new Error("Practice not found");
+            console.log(`Processing TTS: ${index} - ${conv.hiragana}`);
+
+            if (!audioContent) {
+              throw new Error("Failed to generate audio");
+            }
+
+            const audioUrl = `data:audio/mp3;base64,${audioContent.toString("base64")}`;
+            const sentenceWithAudio = { ...conv, audioUrl };
+            conversationsWithAudio.push(sentenceWithAudio);
+          }
+
+          // Create new conversation
+          const conversation = await db.conversation.create({
+            data: {
+              title,
+              content: conversationsWithAudio,
+              practiceId: practice.id,
+              difficulty,
+              voiceMode,
+              familiarity,
+            },
+          });
+
+          yield {
+            type: "complete",
+            data: conversation,
+          } satisfies StreamingChunk;
         }
-      } else {
-        practice = await db.practice.create({
-          data: {
-            prompt,
-            title: prompt,
-          },
-        });
+      } catch (error) {
+        console.error("Error in generate:", error);
+        throw error;
       }
-
-      // Create new conversation
-      const conversation = await db.conversation.create({
-        data: {
-          title,
-          content: conversationsWithAudio,
-          practiceId: practice.id,
-          difficulty,
-          voiceMode,
-          familiarity,
-        },
-      });
-
-      return {
-        practice,
-        conversation,
-      };
     }),
 
   getPractices: publicProcedure.query(async () => {
@@ -313,10 +318,7 @@ ${prompt}`,
         throw new Error("Conversation not found");
       }
 
-      return {
-        ...conversation,
-        content: conversation.content,
-      };
+      return conversation;
     }),
 
   deletePractice: publicProcedure

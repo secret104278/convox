@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { PlayCircleIcon, AcademicCapIcon } from "@heroicons/react/24/solid";
+import { AcademicCapIcon, SpeakerWaveIcon } from "@heroicons/react/24/solid";
 import { type ConversationSentence } from "~/types";
 import { matchTextWithReadings } from "~/utils/textProcessing";
 
@@ -12,6 +12,7 @@ interface SentenceCardProps {
   onPlayAudio: (url: string) => void;
   onShowGrammar: (explanation: string) => void;
   cardRef?: React.RefObject<HTMLDivElement>;
+  isAudioLoading?: boolean;
 }
 
 export function SentenceCard({
@@ -23,7 +24,12 @@ export function SentenceCard({
   onPlayAudio,
   onShowGrammar,
   cardRef,
+  isAudioLoading,
 }: SentenceCardProps) {
+  const shouldShow = selectedRole === "All" || selectedRole === sentence.role;
+
+  if (!shouldShow) return null;
+
   return (
     <div
       ref={cardRef}
@@ -49,15 +55,20 @@ export function SentenceCard({
             >
               {sentence.role}
             </div>
-            {sentence.audioUrl && (
-              <button
-                className="btn btn-circle btn-ghost btn-sm"
-                onClick={() => onPlayAudio(sentence.audioUrl!)}
-                aria-label="Play audio"
-              >
-                <PlayCircleIcon className="h-5 w-5" />
-              </button>
-            )}
+            <button
+              className="btn btn-circle btn-ghost btn-sm"
+              onClick={() =>
+                sentence.audioUrl && onPlayAudio(sentence.audioUrl)
+              }
+              aria-label="Play audio"
+              disabled={!sentence.audioUrl || isAudioLoading}
+            >
+              {isAudioLoading ? (
+                <span className="loading loading-spinner loading-xs"></span>
+              ) : (
+                <SpeakerWaveIcon className="h-4 w-4" />
+              )}
+            </button>
             {sentence.grammarExplanation && (
               <button
                 className="btn btn-circle btn-ghost btn-sm"

@@ -24,8 +24,8 @@ model Practice {
 }
 
 model Conversation {
-  id    String  @id @default(ulid())
-  title String?
+  id    String @id @default(ulid())
+  title String
 
   /// [ConversationContentType]
   content Json

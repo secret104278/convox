@@ -1,3 +1,4 @@
+import { type Prisma } from "@prisma/client";
 import { z } from "zod";
 
 export const llmConversationSchema = z.object({
@@ -12,6 +13,9 @@ export const llmConversationSchema = z.object({
     }),
   ),
 });
+
+export const deepPartialLLMConversationSchema =
+  llmConversationSchema.deepPartial();
 
 export const difficultySchema = z.enum([
   "JLPT N4-N5",
@@ -38,3 +42,17 @@ declare global {
     type ConversationContentType = ConversationSentence[];
   }
 }
+
+export type DeepPartialLLMConversation = z.infer<
+  typeof deepPartialLLMConversationSchema
+>;
+
+export type StreamingChunk =
+  | {
+      type: "llm_progress";
+      data: DeepPartialLLMConversation;
+    }
+  | {
+      type: "complete";
+      data: Prisma.ConversationGetPayload<null>;
+    };
