@@ -26,10 +26,6 @@ export function SentenceCard({
   cardRef,
   isAudioLoading,
 }: SentenceCardProps) {
-  const shouldShow = selectedRole === "All" || selectedRole === sentence.role;
-
-  if (!shouldShow) return null;
-
   return (
     <div
       ref={cardRef}
