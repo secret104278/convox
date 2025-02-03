@@ -5,3 +5,10 @@
 html {
   font-size: 1.1rem;
 }
+
+rt {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
